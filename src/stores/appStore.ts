@@ -737,6 +737,28 @@ export const useAppStore = defineStore('app', () => {
     }
   }
 
+  async function speakText(text: string, lang?: string) {
+    if (isSpeaking.value) {
+      if (tts) {
+        tts.stop()
+      }
+      isSpeaking.value = false
+      return
+    }
+
+    isSpeaking.value = true
+
+    if (!tts) {
+      tts = new TextToSpeechService()
+    }
+
+    try {
+      await tts.speak(text, lang || targetLang.value)
+    } finally {
+      isSpeaking.value = false
+    }
+  }
+
   async function translateChatMessage(msgId: string, text: string) {
     if (chatTranslations.value[msgId]?.translating) return
     if (chatTranslations.value[msgId]?.text) {
@@ -1388,6 +1410,7 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
     startChatRecording,
     stopChatRecording,
     speakChatMessage,
+    speakText,
     translateChatMessage,
     fetchChatTips,
     newChatSession,

@@ -1,11 +1,67 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useAppStore } from '@/stores/appStore'
 import { SOURCE_LANGUAGES, TARGET_LANGUAGES, ANNOTATION_LANGUAGES, PROFICIENCY_OPTIONS } from '@/types'
 import changelog from '@/../CHANGELOG.md?raw'
 import { version } from '@/../package.json'
 
 const store = useAppStore()
+
+interface ChangelogEntry {
+  version: string
+  date: string
+  sections: { heading: string; items: string[] }[]
+}
+
+const parsedChangelog = computed<ChangelogEntry[]>(() => {
+  const lines = changelog.split('\n')
+  const entries: ChangelogEntry[] = []
+  let current: ChangelogEntry | null = null
+  let currentSection: string | null = null
+  let currentItems: string[] = []
+
+  for (const line of lines) {
+    const versionMatch = line.match(/^## v([\d.]+) \(([^)]+)\)/)
+    if (versionMatch) {
+      if (current) {
+        if (currentSection && currentItems.length) {
+          current.sections.push({ heading: currentSection, items: currentItems })
+        }
+        entries.push(current)
+      }
+      current = { version: versionMatch[1], date: versionMatch[2], sections: [] }
+      currentSection = null
+      currentItems = []
+      continue
+    }
+
+    if (!current) continue
+
+    const sectionMatch = line.match(/^### (.+)/)
+    if (sectionMatch) {
+      if (currentSection && currentItems.length) {
+        current.sections.push({ heading: currentSection, items: currentItems })
+      }
+      currentSection = sectionMatch[1]
+      currentItems = []
+      continue
+    }
+
+    const itemMatch = line.match(/^- (.+)/)
+    if (itemMatch && currentSection) {
+      currentItems.push(itemMatch[1])
+    }
+  }
+
+  if (current) {
+    if (currentSection && currentItems.length) {
+      current.sections.push({ heading: currentSection, items: currentItems })
+    }
+    entries.push(current)
+  }
+
+  return entries
+})
 
 const apiKey = ref(store.getApiKey())
 const xfyunAppId = ref(localStorage.getItem('xfyun_app_id') || '')
@@ -241,7 +297,24 @@ function onProficiencyChange(lang: string) {
             更新日志
           </button>
           <Transition name="slide">
-            <pre v-if="showChangelog" class="changelog-content">{{ changelog }}</pre>
+            <div v-if="showChangelog" class="changelog-wrap">
+              <div
+                v-for="entry in parsedChangelog"
+                :key="entry.version"
+                class="changelog-entry"
+              >
+                <div class="changelog-version">
+                  <span class="changelog-tag">v{{ entry.version }}</span>
+                  <span class="changelog-date">{{ entry.date }}</span>
+                </div>
+                <div v-for="section in entry.sections" :key="section.heading" class="changelog-section">
+                  <span class="changelog-section-heading">{{ section.heading }}</span>
+                  <ul class="changelog-list">
+                    <li v-for="(item, i) in section.items" :key="i" class="changelog-item">{{ item }}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </Transition>
         </section>
       </div>
@@ -569,19 +642,95 @@ function onProficiencyChange(lang: string) {
   transform: rotate(180deg);
 }
 
-.changelog-content {
+.changelog-wrap {
   margin-top: 8px;
   padding: 12px;
   border-radius: 10px;
   background: var(--bg-primary);
   border: 0.5px solid var(--border);
-  font-size: 11px;
-  line-height: 1.6;
-  color: var(--text-secondary);
-  white-space: pre-wrap;
-  max-height: 320px;
+  max-height: 360px;
   overflow-y: auto;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.changelog-entry:first-child .changelog-tag {
+  background: var(--accent);
+  color: #fff;
+}
+
+.changelog-version {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.changelog-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.changelog-date {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.changelog-section {
+  margin-top: 6px;
+}
+
+.changelog-section + .changelog-section {
+  margin-top: 10px;
+}
+
+.changelog-section-heading {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bg-card);
+}
+
+.changelog-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.changelog-item {
+  position: relative;
+  padding-left: 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.changelog-item::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  opacity: 0.5;
 }
 
 .slide-enter-active,
@@ -598,6 +747,6 @@ function onProficiencyChange(lang: string) {
 .slide-enter-to,
 .slide-leave-from {
   opacity: 1;
-  max-height: 400px;
+  max-height: 500px;
 }
 </style>

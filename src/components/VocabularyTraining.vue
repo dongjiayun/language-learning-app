@@ -63,6 +63,16 @@ function handleSelectText() {
   const text = sel.toString().trim()
   if (text) store.translateVocabWord(text)
 }
+
+function speakArticleContent() {
+  if (!selectedArticle.value) return
+  store.speakText(selectedArticle.value.content, store.targetLang)
+}
+
+function speakVocabWord() {
+  if (!store.vocabSelectedText) return
+  store.speakText(store.vocabSelectedText, store.targetLang)
+}
 </script>
 
 <template>
@@ -180,7 +190,21 @@ function handleSelectText() {
 
           <!-- 原文 -->
           <section class="detail-section">
-            <h4 class="detail-section-label">📝 原文</h4>
+            <h4 class="detail-section-label">
+              <span>📝 原文</span>
+              <button
+                class="tts-btn"
+                :class="{ active: store.isSpeaking }"
+                title="朗读原文"
+                @click="speakArticleContent"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                </svg>
+              </button>
+            </h4>
             <div class="detail-block" @mouseup="handleSelectText">
               {{ selectedArticle.content }}
             </div>
@@ -220,9 +244,23 @@ function handleSelectText() {
         <div class="popup" @click.stop>
           <div class="popup-head">
             <span class="popup-word">{{ store.vocabSelectedText }}</span>
-            <button class="popup-x" @click="store.dismissVocabTranslation()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+            <div class="popup-head-actions">
+              <button
+                class="popup-tts-btn"
+                :class="{ active: store.isSpeaking }"
+                title="朗读"
+                @click="speakVocabWord"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                </svg>
+              </button>
+              <button class="popup-x" @click="store.dismissVocabTranslation()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
           </div>
           <p v-if="store.vocabTranslating" class="popup-loading">翻译中...</p>
           <p v-else class="popup-text">{{ store.vocabSelectedTranslation }}</p>
@@ -443,7 +481,45 @@ function handleSelectText() {
 }
 
 .detail-section { display: flex; flex-direction: column; gap: 8px; }
-.detail-section-label { font-size: 12px; font-weight: 700; color: var(--text-muted); letter-spacing: .3px; }
+.detail-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: .3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tts-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  transition: all .2s;
+  cursor: pointer;
+}
+
+.tts-btn:hover {
+  background: var(--bg-hover);
+  color: var(--accent);
+}
+
+.tts-btn.active {
+  color: var(--accent);
+  background: rgba(29,155,240,.1);
+  animation: ttsPulse 1s ease infinite;
+}
+
+@keyframes ttsPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
 
 .detail-block {
   padding: 12px 14px; border-radius: 10px;
@@ -494,6 +570,30 @@ function handleSelectText() {
 .popup-head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 14px; border-bottom: 0.5px solid var(--border);
+}
+
+.popup-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.popup-tts-btn {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); transition: all .2s;
+  background: none; border: none; cursor: pointer;
+}
+
+.popup-tts-btn:hover {
+  background: var(--bg-hover);
+  color: var(--accent);
+}
+
+.popup-tts-btn.active {
+  color: var(--accent);
+  background: rgba(29,155,240,.1);
+  animation: ttsPulse 1s ease infinite;
 }
 .popup-word { font-size: 15px; font-weight: 700; color: var(--accent); }
 .popup-x {

@@ -168,23 +168,24 @@ function handleSelectText(e: MouseEvent) {
       <!-- 语音输入模式（默认） -->
       <template v-if="inputMode === 'voice'">
         <button
-          class="mic-btn primary-mic"
+          class="primary-mic"
           :class="{ active: store.practiceRecording }"
           :title="store.practiceRecording ? '停止录音' : '点击说话'"
           @click="handleMicClick"
         >
-          <svg v-if="!store.practiceRecording" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            <line x1="12" y1="19" x2="12" y2="23"/>
-            <line x1="8" y1="23" x2="16" y2="23"/>
-          </svg>
-          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="6" y="6" width="12" height="12" rx="2"/>
-          </svg>
+          <div class="mic-inner">
+            <svg v-if="!store.practiceRecording" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="6" y="6" width="12" height="12" rx="2"/>
+            </svg>
+            <span class="mic-label">{{ store.practiceRecording ? '录音中...' : '点击说话' }}</span>
+          </div>
         </button>
-        <span v-if="store.practiceRecording" class="recording-hint">录音中...</span>
-        <span v-else class="voice-hint">点击说话</span>
       </template>
 
       <!-- 文字输入模式 -->
@@ -598,32 +599,30 @@ function handleSelectText(e: MouseEvent) {
   flex-shrink: 0;
 }
 
-/* Voice mode */
+/* Voice mode - full-width mic button */
 .primary-mic {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
+  flex: 1;
+  height: 56px;
+  border-radius: var(--radius);
   background: var(--bg-card);
   border: 1px solid var(--border);
   transition: all 0.2s;
-  flex-shrink: 0;
+  cursor: pointer;
 }
 
 .primary-mic:hover {
   background: var(--bg-hover);
   border-color: var(--accent);
-  color: var(--accent);
 }
 
 .primary-mic.active {
   background: #e0245e;
   border-color: #e0245e;
-  color: white;
   animation: micPulse 1.5s ease infinite;
+}
+
+.primary-mic.active:hover {
+  background: #c01e4e;
 }
 
 @keyframes micPulse {
@@ -631,22 +630,23 @@ function handleSelectText(e: MouseEvent) {
   50% { box-shadow: 0 0 0 8px rgba(224, 36, 94, 0); }
 }
 
-.recording-hint {
-  font-size: 12px;
-  color: #e0245e;
-  font-weight: 500;
-  animation: blink 1s ease infinite;
+.mic-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  color: var(--text-secondary);
 }
 
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+.primary-mic.active .mic-inner {
+  color: white;
 }
 
-.voice-hint {
-  font-size: 12px;
-  color: var(--text-muted);
-  flex: 1;
+.mic-label {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
 /* Text mode */
