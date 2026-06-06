@@ -1,0 +1,83 @@
+{
+  "name": "doulingo-assist",
+  "version": "1.4.4",
+  "description": "外语口语学习助手 - Foreign Language Speaking Assistant",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "vite --host",
+    "dev:electron": "ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ vite --config vite.config.electron.ts",
+    "bump:patch": "node scripts/bump-version.mjs patch",
+    "bump:minor": "node scripts/bump-version.mjs minor",
+    "bump:major": "node scripts/bump-version.mjs major",
+    "build": "node scripts/bump-version.mjs patch && node scripts/update-changelog.mjs && node scripts/generate-dmg-bg.mjs && ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ vite build --config vite.config.electron.ts && electron-builder",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "pinia": "^2.1.7",
+    "vue": "^3.4.21",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.4",
+    "electron": "^28.2.0",
+    "electron-builder": "^24.13.3",
+    "typescript": "^5.4.2",
+    "vite": "^5.1.6",
+    "vite-plugin-electron": "^0.28.4",
+    "vite-plugin-electron-renderer": "^0.14.5",
+    "vue-tsc": "^2.0.6"
+  },
+  "build": {
+    "appId": "com.doulingo.assist",
+    "productName": "外语口语学习助手",
+    "files": [
+      "dist/index.html",
+      "dist/assets/**/*",
+      "dist-electron/**/*"
+    ],
+    "asar": true,
+    "asarUnpack": [],
+    "compression": "maximum",
+    "removePackageScripts": true,
+    "electronDownload": {
+      "mirror": "https://npmmirror.com/mirrors/electron/"
+    },
+    "mac": {
+      "category": "public.app-category.education",
+      "target": "dmg",
+      "icon": "build/icon.png",
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "外语口语学习助手需要使用麦克风来监听对话并生成外语学习回答。",
+        "NSSpeechRecognitionUsageDescription": "外语口语学习助手需要使用语音识别来转录对话内容。"
+      }
+    },
+    "dmg": {
+      "format": "ULFO",
+      "background": "build/dmg-bg.png",
+      "iconSize": 100,
+      "iconTextSize": 12,
+      "title": "外语口语学习助手",
+      "window": {
+        "width": 660,
+        "height": 480
+      },
+      "contents": [
+        {
+          "x": 170,
+          "y": 280,
+          "type": "file"
+        },
+        {
+          "x": 490,
+          "y": 280,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    }
+  }
+}
