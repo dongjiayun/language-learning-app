@@ -17,7 +17,7 @@ const changelogPath = join(__dirname, '..', 'CHANGELOG.md')
 
 const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'))
 const version = pkg.version
-const today = new Date().toISOString().slice(0, 10)
+const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' })
 
 const changelog = readFileSync(changelogPath, 'utf-8')
 

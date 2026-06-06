@@ -180,6 +180,43 @@ export const ANNOTATION_LANGUAGES: LanguageOption[] = [
   { value: 'fr-FR', label: '法语', nativeLabel: 'Français' },
 ]
 
+// ===== 学习进度追踪 =====
+export interface LearningEvent {
+  id: string
+  type: 'chat_message' | 'practice_message' | 'practice_session' | 'vocab_article' | 'vocab_word_lookup' | 'speaking_session'
+  lang: string
+  timestamp: number
+  detail: string // 简短描述
+}
+
+export interface DailyStats {
+  date: string // YYYY-MM-DD
+  lang: string
+  chatMessages: number
+  practiceMessages: number
+  practiceSessions: number
+  vocabArticles: number
+  vocabLookups: number
+  speakingSessions: number
+  totalMinutes: number
+}
+
+export interface LanguageProgress {
+  lang: string
+  totalSessions: number
+  totalMessages: number
+  totalVocabArticles: number
+  totalVocabLookups: number
+  totalPracticeMinutes: number
+  level: VocabProficiencyLevel
+  lastActiveDate: string
+  dailyStats: DailyStats[]
+  streakDays: number
+}
+
+export const STORAGE_KEY_LEARNING_EVENTS = 'doulingo_learning_events'
+export const STORAGE_KEY_LANG_PROGRESS = 'doulingo_lang_progress'
+
 // 全局声明 window.electronAPI
 declare global {
   interface Window {

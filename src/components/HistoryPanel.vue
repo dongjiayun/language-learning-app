@@ -1,12 +1,19 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useAppStore } from '@/stores/appStore'
 import type { ConversationRecord, PracticeRecord, VocabJournalRecord } from '@/types'
 
 type HistoryTab = 'speaking' | 'chat' | 'practice' | 'vocab'
 
 const store = useAppStore()
-const activeTab = ref<HistoryTab>('speaking')
+const activeTab = ref<HistoryTab>(store.mode as HistoryTab)
+
+// 每次打开面板时，默认选中当前板块
+watch(() => store.showHistory, (open) => {
+  if (open) {
+    activeTab.value = store.mode as HistoryTab
+  }
+})
 
 function getLangLabel(lang: string): string {
   const langMap: Record<string, string> = {

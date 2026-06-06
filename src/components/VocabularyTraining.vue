@@ -6,6 +6,32 @@ import type { VocabArticle } from '@/types'
 const store = useAppStore()
 const selectedArticle = ref<VocabArticle | null>(null)
 const selectedCategory = ref<string | null>(null)
+const sidebarOpen = ref(false)
+const showGenerateConfirm = ref(false)
+
+function toggleSidebar() {
+  sidebarOpen.value = !sidebarOpen.value
+}
+
+const tokenEstimate = computed(() => {
+  const range = store.vocabArticleRange.split('-').map(Number)
+  const numArticles = range.length === 2 ? range[1] : 9
+  const wc = store.vocabWordCount
+  // 估算：固定 prompt ~600 token + 输出（文章 × 字数 × 6 倍系数 ÷ 1.5 中文字符/token）
+  const promptTokens = 600
+  const outputTokens = Math.round(numArticles * wc * 6 / 1.5)
+  const total = promptTokens + outputTokens
+  return { total, outputTokens, numArticles, wc }
+})
+
+function confirmGenerate() {
+  showGenerateConfirm.value = true
+}
+
+function doGenerate() {
+  showGenerateConfirm.value = false
+  store.generateWeeklyJournal()
+}
 
 const categories = computed(() => {
   if (!store.vocabJournal) return []
@@ -25,6 +51,7 @@ const difficultyLabel = (d: string) => ({
 
 function openArticle(a: VocabArticle) {
   selectedArticle.value = a
+  store.recordLearningEvent('vocab_article', store.targetLang, a.title)
 }
 
 function closeDetail() {
@@ -73,15 +100,57 @@ function speakVocabWord() {
   if (!store.vocabSelectedText) return
   store.speakText(store.vocabSelectedText, store.targetLang)
 }
+
+function speakKeyword(word: string) {
+  store.speakText(word, store.targetLang)
+}
 </script>
 
 <template>
   <div class="vocab-view">
-    <!-- ====== 主页 ====== -->
     <template v-if="!selectedArticle">
+      <div class="vocab-layout">
+        <aside class="vocab-sidebar" :class="{ collapsed: !sidebarOpen }">
+          <div class="sidebar-header">
+            <span class="sidebar-title">📰 历史期刊</span>
+            <button class="sidebar-close-btn" @click="toggleSidebar" title="收起侧栏">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="sidebar-list">
+            <div
+              v-for="j in store.vocabJournals"
+              :key="j.id"
+              class="sidebar-item"
+              :class="{ active: store.vocabJournal?.id === j.id }"
+              @click="store.loadVocabJournal(j.id); selectedCategory = null; sidebarOpen = false;"
+            >
+              <div class="sidebar-item-top">
+                <span class="sidebar-item-date">{{ j.date }}</span>
+                <span class="sidebar-item-count">{{ j.articles.length }} 篇</span>
+              </div>
+              <div class="sidebar-item-lang">{{ store.getLangLabel(j.targetLang) }}</div>
+            </div>
+            <div v-if="store.vocabJournals.length === 0" class="sidebar-empty">
+              暂无历史期刊
+            </div>
+          </div>
+        </aside>
+        <div class="vocab-main">
       <!-- 顶栏 -->
       <div class="vocab-bar">
         <div class="vocab-bar-left">
+          <button class="sidebar-toggle" :class="{ collapsed: !sidebarOpen }" @click="toggleSidebar" :title="sidebarOpen ? '收起侧栏' : '展开侧栏'">
+            <svg v-if="sidebarOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16" stroke-linecap="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <line x1="9" y1="3" x2="9" y2="21"/>
+            </svg>
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16" stroke-linecap="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <line x1="15" y1="3" x2="15" y2="21"/>
+            </svg>
+            <span v-if="!sidebarOpen" class="toggle-label">历史</span>
+          </button>
           <span class="vocab-status-dot" :class="{ active: store.vocabLoading }" />
           <span class="vocab-status-text">
             <template v-if="store.vocabLoading">更新中...</template>
@@ -93,7 +162,7 @@ function speakVocabWord() {
           <button class="vocab-tool-btn" :disabled="store.vocabAssessing" @click="store.assessVocabLevel()">
             {{ store.vocabAssessing ? '⏳' : '📊' }} 评估
           </button>
-          <button class="vocab-tool-btn primary" :disabled="store.vocabLoading" @click="store.generateWeeklyJournal()">
+          <button class="vocab-tool-btn primary" :disabled="store.vocabLoading" @click="confirmGenerate()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
             </svg>
@@ -115,18 +184,32 @@ function speakVocabWord() {
         <span v-if="store.vocabAssessing" class="level-assessing">评估中...</span>
       </div>
 
+      <!-- 错误提示 -->
+      <div v-if="store.vocabGenerateError && !store.vocabLoading" class="error-banner">
+        <span class="error-icon">⚠️</span>
+        <span class="error-msg">{{ store.vocabGenerateError }}</span>
+        <button class="error-dismiss" @click="store.vocabGenerateError = ''">✕</button>
+      </div>
+
       <!-- 空 -->
       <div v-if="!store.vocabJournal && !store.vocabLoading" class="empty">
         <div class="empty-icon-wrap"><span class="empty-icon">📰</span></div>
         <p class="empty-title">本周期刊尚未更新</p>
         <p class="empty-hint">点击「更新」，AI 将为你精选多篇多主题词汇训练文章</p>
-        <button class="empty-btn" @click="store.generateWeeklyJournal()">📰 更新期刊</button>
+        <button class="empty-btn" @click="confirmGenerate()">📰 更新期刊</button>
       </div>
 
-      <!-- 加载 -->
+      <!-- 加载进度 -->
       <div v-if="store.vocabLoading" class="loading">
-        <div class="spinner" />
-        <p>AI 正在生成本周词汇期刊...</p>
+        <div class="progress-container">
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" :style="{ width: store.vocabGeneratingProgress + '%' }"></div>
+          </div>
+          <div class="progress-info">
+            <span class="progress-pct">{{ store.vocabGeneratingProgress }}%</span>
+            <span class="progress-status">{{ store.vocabGeneratingStatus }}</span>
+          </div>
+        </div>
         <p class="loading-sub">每篇约 {{ store.vocabWordCount }} 词 · {{ store.vocabArticleRange }} 篇文章</p>
       </div>
 
@@ -167,6 +250,8 @@ function speakVocabWord() {
           </div>
         </div>
       </div>
+      </div>
+    </div>
     </template>
 
     <!-- ====== 详情页 ====== -->
@@ -181,10 +266,10 @@ function speakVocabWord() {
           <span class="detail-cat">{{ selectedArticle.category }}</span>
         </div>
 
-        <!-- 图片 -->
-        <div class="detail-img" :style="{ backgroundImage: `url(${selectedArticle.imageUrl})` }" />
-
         <div class="detail-scroll">
+          <!-- 图片 -->
+          <div class="detail-img" :style="{ backgroundImage: `url(${selectedArticle.imageUrl})` }" />
+
           <!-- 标题 -->
           <h1 class="detail-title">{{ selectedArticle.title }}</h1>
 
@@ -194,7 +279,7 @@ function speakVocabWord() {
               <span>📝 原文</span>
               <button
                 class="tts-btn"
-                :class="{ active: store.isSpeaking }"
+                :class="{ active: store.speakingTarget === selectedArticle.content }"
                 title="朗读原文"
                 @click="speakArticleContent"
               >
@@ -226,6 +311,18 @@ function speakVocabWord() {
                 <div class="kw-head">
                   <span class="kw-word" @click="store.translateVocabWord(kw.word)">{{ kw.word }}</span>
                   <span class="kw-trans">{{ kw.translation }}</span>
+                  <button
+                    class="kw-tts"
+                    :class="{ active: store.speakingTarget === kw.word }"
+                    title="朗读"
+                    @click="speakKeyword(kw.word)"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                    </svg>
+                  </button>
                 </div>
                 <p class="kw-example">{{ kw.sentence }}</p>
                 <p class="kw-example-trans">{{ kw.sentenceTranslation }}</p>
@@ -247,7 +344,7 @@ function speakVocabWord() {
             <div class="popup-head-actions">
               <button
                 class="popup-tts-btn"
-                :class="{ active: store.isSpeaking }"
+                :class="{ active: store.speakingTarget === store.vocabSelectedText }"
                 title="朗读"
                 @click="speakVocabWord"
               >
@@ -267,6 +364,35 @@ function speakVocabWord() {
         </div>
       </div>
     </Transition>
+
+    <!-- 生成确认对话框 -->
+    <Transition name="fade">
+      <div v-if="showGenerateConfirm" class="confirm-overlay" @click.self="showGenerateConfirm = false">
+        <div class="confirm-dialog">
+          <h3 class="confirm-title">确认更新期刊</h3>
+          <div class="confirm-body">
+            <div class="confirm-row">
+              <span class="confirm-label">文章篇数</span>
+              <span class="confirm-value">{{ tokenEstimate.numArticles }} 篇</span>
+            </div>
+            <div class="confirm-row">
+              <span class="confirm-label">每篇字数</span>
+              <span class="confirm-value">{{ tokenEstimate.wc }} 词</span>
+            </div>
+            <div class="confirm-row highlight">
+              <span class="confirm-label">预估消耗</span>
+              <span class="confirm-value">{{ tokenEstimate.total.toLocaleString() }} tokens</span>
+            </div>
+            <p class="confirm-hint">DeepSeek 模型按 tokens 计费，输出约 ¥2/百万 tokens</p>
+            <p class="confirm-cost">预估费用 ≈ ¥{{ ((tokenEstimate.total / 1000000) * 2).toFixed(4) }}</p>
+          </div>
+          <div class="confirm-actions">
+            <button class="confirm-cancel" @click="showGenerateConfirm = false">取消</button>
+            <button class="confirm-ok" @click="doGenerate">确认生成</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -280,6 +406,117 @@ function speakVocabWord() {
   position: relative;
 }
 
+/* ===== 侧边栏布局 ===== */
+.vocab-layout {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.vocab-sidebar {
+  width: 180px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 0.5px solid var(--border);
+  background: var(--bg-secondary);
+  overflow: hidden;
+  transition: width .25s ease, opacity .2s ease;
+  white-space: nowrap;
+}
+
+.vocab-sidebar.collapsed {
+  width: 0;
+  border-right: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 8px;
+  flex-shrink: 0;
+}
+
+.sidebar-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.sidebar-close-btn {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); flex-shrink: 0;
+  transition: all .2s;
+}
+.sidebar-close-btn:hover { background: var(--bg-hover); color: var(--accent); }
+.sidebar-close-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-item {
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all .2s;
+}
+
+.sidebar-item:hover {
+  background: var(--bg-hover);
+}
+
+.sidebar-item.active {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+}
+
+.sidebar-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-item-date {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sidebar-item-count {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.sidebar-item-lang {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.sidebar-empty {
+  text-align: center;
+  padding: 24px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.vocab-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 /* ===== 顶栏 ===== */
 .vocab-bar {
   display: flex;
@@ -290,7 +527,26 @@ function speakVocabWord() {
   flex-shrink: 0;
 }
 
-.vocab-bar-left { display: flex; align-items: center; gap: 8px; }
+.vocab-bar-left { display: flex; align-items: center; gap: 4px; }
+
+.sidebar-toggle {
+  width: 36px; height: 30px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); flex-shrink: 0; gap: 3px;
+  transition: all .2s; background: var(--bg-card);
+  border: 0.5px solid var(--border); padding: 0 8px;
+}
+.sidebar-toggle:hover { background: var(--bg-hover); color: var(--accent); border-color: var(--accent); }
+.sidebar-toggle.collapsed {
+  width: auto; background: var(--bg-secondary);
+  border-color: var(--border); padding: 0 10px;
+}
+.sidebar-toggle.collapsed:hover {
+  background: rgba(29,155,240,.08); border-color: var(--accent); color: var(--accent);
+}
+.toggle-label {
+  font-size: 11px; font-weight: 600;
+}
 
 .vocab-status-dot {
   width: 8px; height: 8px; border-radius: 50%;
@@ -349,12 +605,47 @@ function speakVocabWord() {
   gap: 12px; color: var(--text-muted); font-size: 14px;
 }
 .loading-sub { font-size: 12px; opacity: .6; }
-.spinner {
-  width: 32px; height: 32px; border-radius: 50%;
-  border: 3px solid var(--border); border-top-color: var(--accent);
-  animation: spin .8s linear infinite;
+
+/* ===== 进度条 ===== */
+.progress-container {
+  width: 280px; display: flex; flex-direction: column; gap: 6px;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+.progress-bar-track {
+  width: 100%; height: 6px; border-radius: 3px;
+  background: var(--bg-secondary); overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), #6366f1);
+  transition: width .3s ease;
+}
+.progress-info {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.progress-pct {
+  font-size: 13px; font-weight: 700; color: var(--accent);
+}
+.progress-status {
+  font-size: 11px; color: var(--text-muted);
+}
+
+/* ===== 错误提示 ===== */
+.error-banner {
+  display: flex; align-items: center; gap: 8px;
+  margin: 8px 16px 0; padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(224,36,94,.1);
+  border: 0.5px solid rgba(224,36,94,.25);
+  flex-shrink: 0;
+}
+.error-icon { font-size: 14px; flex-shrink: 0; }
+.error-msg { flex: 1; font-size: 12px; color: #e0245e; line-height: 1.4; }
+.error-dismiss {
+  width: 22px; height: 22px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: rgba(224,36,94,.5); flex-shrink: 0;
+}
+.error-dismiss:hover { background: rgba(224,36,94,.1); color: #e0245e; }
 
 /* ==============================
    主页
@@ -549,6 +840,14 @@ function speakVocabWord() {
 }
 .kw-word:hover { background: rgba(29,155,240,.1); }
 .kw-trans { font-size: 13px; color: var(--text-secondary); }
+.kw-tts {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); background: none; border: none;
+  cursor: pointer; transition: all .2s; margin-left: auto; flex-shrink: 0;
+}
+.kw-tts:hover { background: var(--bg-hover); color: var(--accent); }
+.kw-tts.active { color: var(--accent); background: rgba(29,155,240,.1); animation: ttsPulse 1s ease infinite; }
 .kw-example { font-size: 13px; color: var(--text-primary); line-height: 1.5; }
 .kw-example-trans { font-size: 12px; color: var(--text-muted); }
 
@@ -608,4 +907,67 @@ function speakVocabWord() {
 /* 过渡 */
 .fade-enter-active, .fade-leave-active { transition: opacity .2s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* ===== 生成确认对话框 ===== */
+.confirm-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,.45); backdrop-filter: blur(2px);
+  display: flex; align-items: center; justify-content: center;
+  -webkit-app-region: no-drag;
+}
+
+.confirm-dialog {
+  width: 320px; background: var(--bg-primary);
+  border: 0.5px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0,0,0,.25);
+  overflow: hidden;
+}
+
+.confirm-title {
+  font-size: 16px; font-weight: 700; color: var(--text-primary);
+  padding: 16px 18px 0;
+}
+
+.confirm-body {
+  padding: 14px 18px; display: flex; flex-direction: column; gap: 8px;
+}
+
+.confirm-row {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; padding: 4px 0;
+}
+
+.confirm-row.highlight {
+  background: var(--bg-secondary); margin: 0 -8px; padding: 8px;
+  border-radius: 8px; border: 0.5px solid var(--border);
+}
+
+.confirm-label { color: var(--text-secondary); }
+.confirm-value { font-weight: 600; color: var(--text-primary); }
+.confirm-row.highlight .confirm-value { color: var(--accent); font-size: 15px; }
+
+.confirm-hint { font-size: 11px; color: var(--text-muted); line-height: 1.4; margin-top: 4px; }
+.confirm-cost { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
+
+.confirm-actions {
+  display: flex; gap: 8px; padding: 0 18px 16px;
+}
+
+.confirm-cancel, .confirm-ok {
+  flex: 1; padding: 9px 0; border-radius: 8px;
+  font-size: 13px; font-weight: 600; transition: all .2s;
+}
+
+.confirm-cancel {
+  background: var(--bg-secondary); color: var(--text-secondary);
+  border: 0.5px solid var(--border);
+}
+
+.confirm-cancel:hover { background: var(--bg-hover); }
+
+.confirm-ok {
+  background: var(--accent); color: white; border: none;
+}
+
+.confirm-ok:hover { opacity: .9; }
 </style>

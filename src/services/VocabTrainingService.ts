@@ -19,16 +19,27 @@ export class VocabTrainingService {
   /**
    * 生成本周词汇训练周刊
    * 包含多主题文章 + 关键词汇
+   * @param onProgress 流式进度回调，参数为 (currentChars, totalEstimate)
    */
-  async generateWeeklyJournal(targetLang: string, nativeLang: string, userLevel: string, wordCount: number = 400, articleRange: string = '8-9'): Promise<VocabJournal> {
+  async generateWeeklyJournal(
+    targetLang: string,
+    nativeLang: string,
+    translationLang: string,
+    userLevel: string,
+    wordCount: number = 400,
+    articleRange: string = '8-9',
+    onProgress?: (chars: number, total: number) => void,
+  ): Promise<VocabJournal> {
     if (!this.apiKey) throw new Error('请先配置 API Key')
 
     const langName = this.getLangName(targetLang)
     const nativeName = this.getLangName(nativeLang)
+    const translationName = this.getLangName(translationLang)
 
     const prompt = `你是一位专业的${langName}语言教育专家。请为语言学习者生成一份本周词汇训练期刊。
 
 用户母语：${nativeName}
+翻译语言：${translationName}
 用户当前语言水平：${userLevel}
 
 要求：
@@ -42,9 +53,9 @@ export class VocabTrainingService {
    - 教育/学习（学习方法、教育理念）
    - 财经/商业（经济动态、商业故事）
 2. 每篇文章必须是地道的 ${langName} 写作
-3. 每篇文章附有完整的 ${nativeName} 翻译
-4. 每篇文章提取 3-5 个关键词汇，给出 ${nativeName} 翻译、包含该词的例句及例句的 ${nativeName} 翻译
-5. 每篇文章提供一个图片搜索关键词 imageQuery（英文）用于配图，以及1-2句话的摘要（${nativeName}）
+3. 每篇文章附有完整的 ${translationName} 翻译
+4. 每篇文章提取 3-5 个关键词汇，给出 ${translationName} 翻译、包含该词的例句及例句的 ${translationName} 翻译
+5. 每篇文章提供一个图片搜索关键词 imageQuery（英文）用于配图，以及1-2句话的摘要（${translationName}）
 6. 根据用户水平控制文章难度
 
 请严格按照以下 JSON 格式返回（不要包含 markdown 代码块标记，只返回纯 JSON）：
@@ -54,21 +65,26 @@ export class VocabTrainingService {
       "title": "文章标题（${langName}）",
       "category": "分类",
       "imageQuery": "英文图片搜索关键词",
-      "summary": "文章摘要（1-2句话，${nativeName}）",
+      "summary": "文章摘要（1-2句话，${translationName}）",
       "content": "文章正文",
-      "translation": "${nativeName}翻译",
+      "translation": "${translationName}翻译",
       "difficulty": "beginner|intermediate|advanced",
       "keyWords": [
         {
           "word": "词汇",
-          "translation": "${nativeName}翻译",
+          "translation": "${translationName}翻译",
           "sentence": "包含该词的例句",
-          "sentenceTranslation": "例句的${nativeName}翻译"
+          "sentenceTranslation": "例句的${translationName}翻译"
         }
       ]
     }
   ]
 }`
+
+    // 估算总字符数
+    const rangeParts = articleRange.split('-').map(Number)
+    const numArticles = rangeParts.length === 2 ? rangeParts[1] : 9
+    const totalEstimate = numArticles * wordCount * 5
 
     try {
       const response = await fetch(this.apiEndpoint, {
@@ -84,12 +100,26 @@ export class VocabTrainingService {
             { role: 'user', content: prompt },
           ],
           temperature: 0.8,
-          max_tokens: 6000,
+          max_tokens: 100000,
+          stream: onProgress ? true : false,
         }),
       })
 
-      const data = await response.json()
-      const content = data.choices?.[0]?.message?.content
+      if (!response.ok) {
+        const errBody = await response.text().catch(() => '')
+        throw new Error(`API 请求失败 (${response.status}): ${errBody}`)
+      }
+
+      let content: string
+
+      if (onProgress && response.body) {
+        // 流式读取
+        content = await this.readStream(response.body, totalEstimate, onProgress)
+      } else {
+        const data = await response.json()
+        content = data.choices?.[0]?.message?.content
+      }
+
       if (!content) throw new Error('AI 返回内容为空')
 
       // 解析 JSON
@@ -107,8 +137,8 @@ export class VocabTrainingService {
           ...a,
           id: `article-${dateStr}-${idx}`,
           imageUrl: a.imageQuery
-            ? `https://source.unsplash.com/400x250/?${encodeURIComponent(a.imageQuery)}`
-            : `https://source.unsplash.com/400x250/?${encodeURIComponent(a.category)}`,
+            ? `https://picsum.photos/seed/${encodeURIComponent(a.imageQuery.replace(/\s+/g, '-').toLowerCase())}/400/250`
+            : `https://picsum.photos/seed/${encodeURIComponent(a.category.replace(/\s+/g, '-'))}/400/250`,
         })),
         generatedAt: Date.now(),
         userLevel,
@@ -121,6 +151,51 @@ export class VocabTrainingService {
       console.error('[VocabTrainingService] 生成周刊失败:', err)
       throw new Error(`更新期刊失败：${err.message || '网络错误'}`)
     }
+  }
+
+  /**
+   * 流式读取 SSE 响应
+   */
+  private async readStream(
+    body: ReadableStream<Uint8Array>,
+    totalEstimate: number,
+    onProgress: (chars: number, total: number) => void,
+  ): Promise<string> {
+    const reader = body.getReader()
+    const decoder = new TextDecoder()
+    let result = ''
+    let buffer = ''
+    let totalChars = 0
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed || !trimmed.startsWith('data: ')) continue
+        const data = trimmed.slice(6)
+        if (data === '[DONE]') continue
+
+        try {
+          const parsed = JSON.parse(data)
+          const delta = parsed.choices?.[0]?.delta?.content
+          if (delta) {
+            result += delta
+            totalChars += delta.length
+            onProgress(totalChars, totalEstimate)
+          }
+        } catch {
+          // 忽略解析失败的行
+        }
+      }
+    }
+
+    return result
   }
 
   /**
@@ -182,19 +257,20 @@ ${history.slice(-10).join('\n---\n')}
   /**
    * 翻译选中的单词/短语
    */
-  async translateWord(word: string, targetLang: string): Promise<string> {
+  async translateWord(word: string, sourceLang: string, outputLang: string): Promise<string> {
     if (!this.apiKey) return word
 
-    const langName = this.getLangName(targetLang)
+    const langName = this.getLangName(sourceLang)
+    const outputName = this.getLangName(outputLang)
 
-    const prompt = `请将以下${langName}单词/短语翻译成中文，并给出简短的解释。
+    const prompt = `请将以下${langName}单词/短语翻译成${outputName}，并给出简短的解释。
 
 单词：${word}
 
 请严格按照以下 JSON 格式返回（只返回纯 JSON）：
 {
-  "translation": "中文翻译",
-  "explanation": "简短的中文解释，包括用法说明"
+  "translation": "${outputName}翻译",
+  "explanation": "简短的${outputName}解释，包括用法说明"
 }`
 
     try {

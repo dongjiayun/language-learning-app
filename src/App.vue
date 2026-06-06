@@ -8,6 +8,7 @@ import SpeakingPractice from './components/SpeakingPractice.vue'
 import VocabularyTraining from './components/VocabularyTraining.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 import HistoryPanel from './components/HistoryPanel.vue'
+import ProgressPanel from './components/ProgressPanel.vue'
 import { version } from '../package.json'
 
 const store = useAppStore()
@@ -22,13 +23,20 @@ function getLangLabel(lang: string): string {
   <div class="app">
     <!-- Header -->
     <header class="header">
-      <button class="header-btn" @click="store.toggleHistory()" title="历史">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" stroke-linecap="round">
-          <rect x="3" y="3" width="18" height="18" rx="2"/>
-          <line x1="3" y1="9" x2="21" y2="9"/>
-          <line x1="9" y1="21" x2="9" y2="9"/>
-        </svg>
-      </button>
+      <div class="header-left">
+        <button class="header-btn" @click="store.toggleProgress()" title="学习进度">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" stroke-linecap="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+        </button>
+        <button class="header-btn" @click="store.toggleHistory()" title="历史">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" stroke-linecap="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <line x1="3" y1="9" x2="21" y2="9"/>
+            <line x1="9" y1="21" x2="9" y2="9"/>
+          </svg>
+        </button>
+      </div>
       <div class="header-title">外语口语学习助手</div>
       <button class="header-btn" @click="store.toggleSettings()" title="设置">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" stroke-linecap="round">
@@ -131,6 +139,7 @@ function getLangLabel(lang: string): string {
 
     <SettingsPanel v-if="store.showSettings" />
     <HistoryPanel v-if="store.showHistory" />
+    <ProgressPanel v-if="store.showProgress" />
   </div>
 </template>
 
@@ -151,6 +160,12 @@ function getLangLabel(lang: string): string {
   padding: 0 12px;
   flex-shrink: 0;
   -webkit-app-region: drag;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .header-btn {

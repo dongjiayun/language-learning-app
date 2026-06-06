@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import type { AppState, AppMode, FrenchResponseItem, ConversationRecord, ChatMessage, ChatSession, PracticeMessage, PracticeRecord, VocabJournal, VocabJournalRecord, LanguageProficiency, VocabProficiencyLevel } from '@/types'
+import type { AppState, AppMode, FrenchResponseItem, ConversationRecord, ChatMessage, ChatSession, PracticeMessage, PracticeRecord, VocabJournal, VocabJournalRecord, LanguageProficiency, VocabProficiencyLevel, LearningEvent, LanguageProgress, DailyStats } from '@/types'
+import { STORAGE_KEY_LEARNING_EVENTS } from '@/types'
 import { FrenchResponseService } from '@/services/FrenchResponseService'
 import { ChatService } from '@/services/ChatService'
 import { VocabTrainingService } from '@/services/VocabTrainingService'
@@ -21,6 +22,7 @@ const STORAGE_KEY_LANG_PROFICIENCY = 'doulingo_lang_proficiency'
 const STORAGE_KEY_THEME = 'doulingo_theme'
 const STORAGE_KEY_VOCAB_WORD_COUNT = 'doulingo_vocab_word_count'
 const STORAGE_KEY_VOCAB_ARTICLE_RANGE = 'doulingo_vocab_article_range'
+const STORAGE_KEY_VOCAB_JOURNALS = 'doulingo_vocab_journals'
 
 export const useAppStore = defineStore('app', () => {
   const state = ref<AppState>('idle')
@@ -29,8 +31,10 @@ export const useAppStore = defineStore('app', () => {
   const recognizedText = ref('')
   const isSpeaking = ref(false)
   const speakingId = ref<string | null>(null)
+  const speakingTarget = ref<string>('')
   const showSettings = ref(false)
   const showHistory = ref(false)
+  const showProgress = ref(false)
   const recognitionError = ref('')
 
   const sourceLang = ref(localStorage.getItem(STORAGE_KEY_SOURCE_LANG) || 'zh-CN')
@@ -107,12 +111,18 @@ export const useAppStore = defineStore('app', () => {
   const vocabArticleRange = ref(localStorage.getItem(STORAGE_KEY_VOCAB_ARTICLE_RANGE) || '8-9')
   const vocabJournal = ref<VocabJournal | null>(null)
   const vocabLoading = ref(false)
+  const vocabGeneratingProgress = ref(0) // 0-100
+  const vocabGeneratingStatus = ref('')
+  const vocabGenerateError = ref('')
   const vocabAssessing = ref(false)
   const vocabUserLevel = ref('中级')
   const vocabRecords = ref<VocabJournalRecord[]>([])
   const vocabSelectedText = ref('')
   const vocabSelectedTranslation = ref('')
   const vocabTranslating = ref(false)
+  const vocabJournals = ref<VocabJournal[]>(
+    JSON.parse(localStorage.getItem(STORAGE_KEY_VOCAB_JOURNALS) || '[]')
+  )
   let vocabService: VocabTrainingService | null = null
 
   // 计算属性：当前会话的消息列表
@@ -191,6 +201,14 @@ export const useAppStore = defineStore('app', () => {
       console.error('恢复词汇周刊失败:', e)
     }
   }
+  // 迁移：已有的当前期刊如果不在历史列表中则补入
+  if (vocabJournal.value) {
+    const exists = vocabJournals.value.some(j => j.id === vocabJournal.value!.id)
+    if (!exists) {
+      vocabJournals.value.unshift(vocabJournal.value)
+      localStorage.setItem(STORAGE_KEY_VOCAB_JOURNALS, JSON.stringify(vocabJournals.value))
+    }
+  }
   const savedVocabRecords = localStorage.getItem(STORAGE_KEY_VOCAB_RECORDS)
   if (savedVocabRecords) {
     try {
@@ -253,6 +271,10 @@ export const useAppStore = defineStore('app', () => {
 
   function toggleHistory() {
     showHistory.value = !showHistory.value
+  }
+
+  function toggleProgress() {
+    showProgress.value = !showProgress.value
   }
 
   function setApiKey(key: string) {
@@ -403,6 +425,7 @@ export const useAppStore = defineStore('app', () => {
         annotateLang.value
       )
       responses.value = results
+      recordLearningEvent('speaking_session', targetLang.value, finalText.slice(0, 50))
 
       const record: ConversationRecord = {
         id: Date.now().toString(),
@@ -610,6 +633,7 @@ export const useAppStore = defineStore('app', () => {
     if (session.title === '新对话' && userMsg.role === 'user') {
       session.title = generateTitle(session.messages)
     }
+    recordLearningEvent('chat_message', targetLang.value, text.slice(0, 50))
     // 排序：活跃会话靠前
     chatSessions.value.sort((a, b) => b.updatedAt - a.updatedAt)
     saveChatSessions()
@@ -743,10 +767,12 @@ export const useAppStore = defineStore('app', () => {
         tts.stop()
       }
       isSpeaking.value = false
+      speakingTarget.value = ''
       return
     }
 
     isSpeaking.value = true
+    speakingTarget.value = text
 
     if (!tts) {
       tts = new TextToSpeechService()
@@ -756,6 +782,7 @@ export const useAppStore = defineStore('app', () => {
       await tts.speak(text, lang || targetLang.value)
     } finally {
       isSpeaking.value = false
+      speakingTarget.value = ''
     }
   }
 
@@ -1063,6 +1090,7 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
     practiceIsActive.value = true
     practiceMessages.value = []
     practiceHints.value = []
+    recordLearningEvent('practice_session', targetLang.value, '开始口语练习')
 
     // 释放可能的录音资源
     if (speechService) {
@@ -1119,7 +1147,9 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
       role: 'user',
       content: text.trim(),
       timestamp: Date.now(),
+      translation: '',
     })
+    recordLearningEvent('practice_message', targetLang.value, text.slice(0, 50))
 
     clearPracticeTimers()
     await practiceStartTopic()
@@ -1226,13 +1256,24 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
 
     try {
       vocabLoading.value = true
+      vocabGeneratingProgress.value = 0
+      vocabGeneratingStatus.value = '正在生成期刊...'
+      vocabGenerateError.value = ''
       const journal = await vocabService.generateWeeklyJournal(
         targetLang.value,
         nativeLanguage.value,
+        annotateLang.value,
         levelDesc,
         vocabWordCount.value,
         vocabArticleRange.value,
+        (chars: number, total: number) => {
+          const pct = Math.min(Math.round((chars / total) * 100), 99)
+          vocabGeneratingProgress.value = pct
+          vocabGeneratingStatus.value = `正在生成期刊... ${chars < 1000 ? chars + '字' : (chars / 1000).toFixed(1) + 'K字'}`
+        },
       )
+      vocabGeneratingProgress.value = 100
+      vocabGeneratingStatus.value = '生成完成'
       vocabJournal.value = journal
       localStorage.setItem(STORAGE_KEY_VOCAB_JOURNAL, JSON.stringify(journal))
 
@@ -1257,10 +1298,40 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
         vocabRecords.value = vocabRecords.value.slice(0, 99)
       }
       localStorage.setItem(STORAGE_KEY_VOCAB_RECORDS, JSON.stringify(vocabRecords.value))
+
+      // 保存到历史期刊列表
+      const existingIdx = vocabJournals.value.findIndex(j => j.id === journal.id)
+      if (existingIdx >= 0) {
+        vocabJournals.value[existingIdx] = journal
+      } else {
+        vocabJournals.value.unshift(journal)
+      }
+      if (vocabJournals.value.length > 20) {
+        vocabJournals.value = vocabJournals.value.slice(0, 20)
+      }
+      localStorage.setItem(STORAGE_KEY_VOCAB_JOURNALS, JSON.stringify(vocabJournals.value))
     } catch (e: any) {
       console.error('[Store] 生成周刊失败:', e)
+      vocabGenerateError.value = e?.message || '生成失败，请重试'
+      vocabGeneratingProgress.value = 0
+      vocabGeneratingStatus.value = '生成失败'
     } finally {
       vocabLoading.value = false
+    }
+  }
+
+  function loadVocabJournal(id: string) {
+    const found = vocabJournals.value.find(j => j.id === id)
+    if (found) {
+      vocabJournal.value = found
+    }
+  }
+
+  function deleteVocabJournal(id: string) {
+    vocabJournals.value = vocabJournals.value.filter(j => j.id !== id)
+    localStorage.setItem(STORAGE_KEY_VOCAB_JOURNALS, JSON.stringify(vocabJournals.value))
+    if (vocabJournal.value?.id === id) {
+      vocabJournal.value = vocabJournals.value[0] || null
     }
   }
 
@@ -1331,8 +1402,9 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
     try {
       vocabTranslating.value = true
       vocabSelectedText.value = word
-      const result = await vocabService.translateWord(word, targetLang.value)
+      const result = await vocabService.translateWord(word, targetLang.value, annotateLang.value)
       vocabSelectedTranslation.value = result
+      recordLearningEvent('vocab_word_lookup', targetLang.value, word)
     } catch (e: any) {
       vocabSelectedTranslation.value = '翻译失败，请重试'
     } finally {
@@ -1355,6 +1427,125 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
     localStorage.setItem(STORAGE_KEY_VOCAB_ARTICLE_RANGE, range)
   }
 
+  // ===== 学习进度追踪 =====
+  const learningEvents = ref<LearningEvent[]>(
+    JSON.parse(localStorage.getItem(STORAGE_KEY_LEARNING_EVENTS) || '[]')
+  )
+
+  function recordLearningEvent(type: LearningEvent['type'], lang: string, detail: string) {
+    const event: LearningEvent = {
+      id: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      type,
+      lang,
+      timestamp: Date.now(),
+      detail,
+    }
+    learningEvents.value.unshift(event)
+    // 只保留最近 2000 条
+    if (learningEvents.value.length > 2000) {
+      learningEvents.value = learningEvents.value.slice(0, 2000)
+    }
+    localStorage.setItem(STORAGE_KEY_LEARNING_EVENTS, JSON.stringify(learningEvents.value))
+  }
+
+  const langProgress = computed<LanguageProgress[]>(() => {
+    const langMap = new Map<string, LanguageProgress>()
+    const events = learningEvents.value
+
+    for (const evt of events) {
+      if (!langMap.has(evt.lang)) {
+        langMap.set(evt.lang, {
+          lang: evt.lang,
+          totalSessions: 0,
+          totalMessages: 0,
+          totalVocabArticles: 0,
+          totalVocabLookups: 0,
+          totalPracticeMinutes: 0,
+          level: languageProficiencies.value[evt.lang] || 'beginner',
+          lastActiveDate: '',
+          dailyStats: [],
+          streakDays: 0,
+        })
+      }
+
+      const p = langMap.get(evt.lang)!
+      const dateStr = new Date(evt.timestamp).toISOString().slice(0, 10)
+
+      if (dateStr > p.lastActiveDate) p.lastActiveDate = dateStr
+
+      switch (evt.type) {
+        case 'practice_session':
+          p.totalSessions++
+          break
+        case 'speaking_session':
+          p.totalSessions++
+          break
+        case 'chat_message':
+        case 'practice_message':
+          p.totalMessages++
+          break
+        case 'vocab_article':
+          p.totalVocabArticles++
+          break
+        case 'vocab_word_lookup':
+          p.totalVocabLookups++
+          break
+      }
+
+      // Daily stats
+      let day = p.dailyStats.find(d => d.date === dateStr)
+      if (!day) {
+        day = {
+          date: dateStr,
+          lang: evt.lang,
+          chatMessages: 0,
+          practiceMessages: 0,
+          practiceSessions: 0,
+          vocabArticles: 0,
+          vocabLookups: 0,
+          speakingSessions: 0,
+          totalMinutes: 0,
+        }
+        p.dailyStats.push(day)
+      }
+
+      switch (evt.type) {
+        case 'chat_message': day.chatMessages++; break
+        case 'practice_message': day.practiceMessages++; break
+        case 'practice_session': day.practiceSessions++; break
+        case 'vocab_article': day.vocabArticles++; break
+        case 'vocab_word_lookup': day.vocabLookups++; break
+        case 'speaking_session': day.speakingSessions++; break
+      }
+    }
+
+    // Sort daily stats descending
+    for (const p of langMap.values()) {
+      p.dailyStats.sort((a, b) => b.date.localeCompare(a.date))
+      // Compute streak
+      let streak = 0
+      const today = new Date().toISOString().slice(0, 10)
+      let checkDate = today
+      while (true) {
+        const hasActivity = p.dailyStats.some(d => d.date === checkDate)
+        if (!hasActivity && checkDate !== today) break
+        if (hasActivity) streak++
+        const d = new Date(checkDate)
+        d.setDate(d.getDate() - 1)
+        checkDate = d.toISOString().slice(0, 10)
+        if (streak > 365) break
+      }
+      p.streakDays = streak
+      p.level = languageProficiencies.value[p.lang] || 'beginner'
+    }
+
+    return Array.from(langMap.values()).sort((a, b) => b.lastActiveDate.localeCompare(a.lastActiveDate))
+  })
+
+  function getLangProgress(lang: string): LanguageProgress | undefined {
+    return langProgress.value.find(p => p.lang === lang)
+  }
+
   return {
     state,
     responses,
@@ -1362,8 +1553,10 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
     recognizedText,
     isSpeaking,
     speakingId,
+    speakingTarget,
     showSettings,
     showHistory,
+    showProgress,
     hasApiKey,
     statusText,
     recognitionError,
@@ -1375,6 +1568,7 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
     conversationCount,
     toggleSettings,
     toggleHistory,
+    toggleProgress,
     theme,
     setTheme,
     setApiKey,
@@ -1438,9 +1632,15 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
     languageProficiencies,
     vocabJournal,
     vocabLoading,
+    vocabGeneratingProgress,
+    vocabGeneratingStatus,
+    vocabGenerateError,
     vocabAssessing,
     vocabUserLevel,
     vocabRecords,
+    vocabJournals,
+    loadVocabJournal,
+    deleteVocabJournal,
     vocabSelectedText,
     vocabSelectedTranslation,
     vocabTranslating,
@@ -1455,5 +1655,10 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
     dismissVocabTranslation,
     setVocabWordCount,
     setVocabArticleRange,
+    // progress
+    learningEvents,
+    langProgress,
+    getLangProgress,
+    recordLearningEvent,
   }
 })
