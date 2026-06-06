@@ -107,8 +107,8 @@ export class VocabTrainingService {
           ...a,
           id: `article-${dateStr}-${idx}`,
           imageUrl: a.imageQuery
-            ? `https://picsum.photos/seed/${encodeURIComponent(a.imageQuery.replace(/\s+/g, '-'))}/400/250`
-            : `https://picsum.photos/seed/${a.category}-${idx}/400/250`,
+            ? `https://source.unsplash.com/400x250/?${encodeURIComponent(a.imageQuery)}`
+            : `https://source.unsplash.com/400x250/?${encodeURIComponent(a.category)}`,
         })),
         generatedAt: Date.now(),
         userLevel,
