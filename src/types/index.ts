@@ -50,6 +50,16 @@ export interface ChatSession {
   messageCount: number
 }
 
+// ===== 生词本 =====
+export interface VocabEntry {
+  id: string
+  word: string
+  translation: string
+  sourceLang: string
+  annotateLang: string
+  addedAt: number
+}
+
 // ===== 词汇训练 =====
 export type VocabProficiencyLevel = 'native' | 'beginner' | 'elementary' | 'intermediate' | 'advanced' | 'fluent'
 

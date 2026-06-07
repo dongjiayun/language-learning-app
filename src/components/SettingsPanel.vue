@@ -74,6 +74,46 @@ const selectedTargetLang = ref(store.targetLang)
 const selectedAnnotateLang = ref(store.annotateLang)
 const showChangelog = ref(false)
 
+// ===== 关于弹出 =====
+const showAbout = ref(false)
+
+// ===== 数据导入导出 =====
+const importResult = ref<{ success: boolean; message: string } | null>(null)
+
+function handleExport() {
+  const json = store.exportAllData()
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `doulingo-backup-${new Date().toISOString().slice(0, 10)}.json`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+  importResult.value = { success: true, message: `导出成功：共 ${json.length.toLocaleString()} 字节` }
+  setTimeout(() => { importResult.value = null }, 3000)
+}
+
+function handleImport() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.json'
+  input.onchange = async () => {
+    const file = input.files?.[0]
+    if (!file) return
+    try {
+      const text = await file.text()
+      const result = store.importAllData(text)
+      importResult.value = result
+    } catch {
+      importResult.value = { success: false, message: '读取文件失败' }
+    }
+  }
+  input.click()
+}
+
+
 watch(apiKey, () => { saved.value = false })
 
 function saveApiKey() {
@@ -314,6 +354,25 @@ function onProficiencyChange(lang: string) {
           </div>
         </section>
 
+        <!-- ===== 数据导入导出 ===== -->
+        <section class="section">
+          <div class="section-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>数据导入导出</span>
+          </div>
+          <div class="section-card">
+            <p class="import-hint">导出所有配置、生词本、历史记录和学习进度为 JSON 文件。导入时使用合并策略，不会丢失已有数据。</p>
+            <div class="import-actions">
+              <button class="api-btn primary" @click="handleExport">导出数据</button>
+              <button class="api-btn ghost" @click="handleImport">导入数据</button>
+            </div>
+            <div v-if="importResult" class="import-result" :class="{ success: importResult.success, error: !importResult.success }">
+              {{ importResult.message }}
+              <button class="import-dismiss" @click="importResult = null">✕</button>
+            </div>
+          </div>
+        </section>
+
         <!-- ===== 版本 ===== -->
         <section class="section">
           <div class="section-header">
@@ -346,6 +405,39 @@ function onProficiencyChange(lang: string) {
                       <li v-for="(item, i) in section.items" :key="i" class="changelog-item">{{ item }}</li>
                     </ul>
                   </div>
+                </div>
+              </div>
+            </Transition>
+          </div>
+        </section>
+
+        <!-- ===== 关于 ===== -->
+        <section class="section">
+          <div class="section-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>关于</span>
+          </div>
+          <div class="section-card">
+            <button class="about-btn" @click="showAbout = !showAbout">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              编者的话
+              <svg :class="{ rotated: showAbout }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <!-- About 弹出框 -->
+            <Transition name="slide">
+              <div v-if="showAbout" class="about-modal">
+                <div class="about-content">
+                  <p>说起来有些好笑，这个应用的诞生，源头不过是 Duolingo Max 那高昂的订阅价格。每个月近两百元的费用，对于一个只想安静学一门语言的人来说，多少有些奢侈。某个深夜，我盯着那个付款界面看了很久，突然冒出一个念头——为什么不自己做一个呢？</p>
+                  <p>那时的我，对"Vibe Coding"这个词还只是一个模糊的印象。所谓 Vibe Coding，大抵是指那种顺着感觉走的编程方式——不需要完整的架构设计，不需要详尽的需求文档，只是跟着灵感的方向，一行一行地写下去。听起来有些疯狂，但在这个 AI 时代，很多疯狂的事情正在变得稀松平常。</p>
+                  <p>于是我真的开始了。打开编辑器，接入 DeepSeek 的 API，开始了这场漫无边际的尝试。最初的想法很简单：一个能说外语、能听懂我回应的对话工具。就像一个不会疲倦的语言陪练，随时在线，随时愿意和你聊上几句。从麦克风权限的获取，到语音识别的调试，再到文字翻译的呈现——每一个环节都像在黑暗中摸索，但每迈出一步，眼前就亮起一盏灯。</p>
+                  <p>让我惊讶的是，灵感这种东西，一旦开始就不会停下。就在基础对话功能勉强跑通的那个下午，我看着屏幕上歪歪扭扭的法语句子，突然想——如果它能朗读出来该多好？于是有了 TTS。如果它能纠正我的发音呢？于是有了口语评测。如果它能把聊过的内容整理成期刊呢？于是有了词汇训练。如果它能记录我的学习轨迹，让我看到每一天的进步呢？于是便有了学习进度追踪。一个功能牵引出下一个功能，像溪流汇成小河，小河又奔向江海。</p>
+                  <p>不知不觉间，当初那个简陋的对话框已经长成了一个五脏俱全的外语学习平台。回头翻看提交记录，我粗略统计了一下——调用 DeepSeek 接口消耗的 token 总数，大约在两亿左右。两亿 token 是什么概念？如果翻译成文字，大约是几百万个汉字，相当于几部长篇小说的体量。而这些计算量，在云端不过是一瞬间的事。更让我感慨的是，这庞大的两亿 token，总共花费不到十元钱。十元钱，甚至买不了一杯像样的咖啡，却支撑起了一个完整应用从零到一的所有智能对话。</p>
+                  <p>这不得不让人思考一些更本质的问题。当 AI 可以让一个普通人在一天之内、以极低的成本完成过去需要一个团队数周才能实现的工作时，程序员的價值究竟在哪里？</p>
+                  <p>我想了很久，答案渐渐清晰。代码本身正在变得廉价——当你可以让 AI 替你写出大部分代码的时候，敲击键盘的动作已经不再稀缺。真正稀缺的，是那双能看见需求的眼睛，那个能构想出产品形态的大脑。程序员的护城河，从来不是某门语言、某个框架的熟练度，而是对业务的理解深度，是对用户体验的细腻感知，是对"做什么"和"为什么做"的判断力。简单来说，在未来，一个优秀的程序员首先应该是一个优秀的产品经理。</p>
+                  <p>这也是为什么我一直在强调"宏观把控能力"的重要性。技术栈的更迭越来越快，今天的热门框架明天可能就无人问津。但如果你的视野足够开阔，能够理解整个系统的运作逻辑，能够判断什么样的技术方案最适合当前的问题，能够在茫茫多的可能性中找到那条最优路径——那么无论技术如何变迁，你都始终站在浪潮之上。Vibe Coding 的本质并不是随意和散漫，而是将那些重复的、机械的编码工作交给 AI，让自己解放出来，去思考真正值得思考的事情。</p>
+                  <p>话说回来，这个应用目前还很粗糙。界面不够精美，功能还有漏洞，体验也远未达到流畅的程度。但它是我用两天不到的时间、两亿 token、十元钱和一整夜的咖啡因拼凑出来的作品。它有温度，有脾气，有我这个创造者赋予它的独特气质。每一次划词翻译弹出的瞬间，每一段 TTS 朗读的声音，每一篇 AI 生成的期刊文章——都是我深夜坐在电脑前，与代码和灵感较量的痕迹。</p>
+                  <p>如果你正在读这段话，也许你也在学一门语言，也许你也在寻找一个趁手的工具。那么我想对你说：语言的魅力在于它打开了一扇通往另一个世界的门。而技术的魅力在于，它让我们有能力亲手去打造那把钥匙。这个应用是我用我那把钥匙打开的一扇门。现在，我把这把钥匙也交给你。</p>
+                  <p class="about-signature">—— dongjiayun<br/>于一个同样安静的深夜</p>
                 </div>
               </div>
             </Transition>
@@ -931,5 +1023,87 @@ function onProficiencyChange(lang: string) {
 .slide-leave-from {
   opacity: 1;
   max-height: 500px;
+}
+.import-hint {
+  font-size: 12px; line-height: 1.5; color: var(--text-muted);
+  margin: 0 0 12px;
+}
+.import-actions {
+  display: flex; gap: 8px;
+}
+.import-result {
+  margin-top: 10px; padding: 8px 12px;
+  border-radius: 6px; font-size: 12px; line-height: 1.4;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.import-result.success {
+  background: rgba(0,200,83,.1); color: var(--success);
+}
+.import-result.error {
+  background: rgba(255,77,77,.1); color: var(--danger);
+}
+.import-dismiss {
+  background: none; border: none; color: inherit; cursor: pointer;
+  font-size: 14px; padding: 0 2px; opacity: .6;
+}
+.import-dismiss:hover { opacity: 1; }
+
+.about-content .about-signature {
+  text-indent: 0; text-align: right;
+  font-size: 13px; color: var(--text-muted);
+  margin-bottom: 0; padding-top: 4px;
+}
+
+.about-btn {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  padding: 10px 12px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500; color: var(--text-secondary);
+  background: transparent; border: 0.5px solid transparent;
+  transition: all .15s;
+}
+.about-btn:hover {
+  background: var(--bg-hover); border-color: var(--border);
+}
+.about-btn svg:last-child { margin-left: auto; transition: transform .2s; }
+.about-btn svg:last-child.rotated { transform: rotate(180deg); }
+
+.about-modal {
+  margin-top: 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  border: 0.5px solid var(--border);
+  overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.about-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 0.5px solid var(--border);
+  position: sticky; top: 0; background: var(--bg-surface); z-index: 1;
+}
+.about-modal-title {
+  font-size: 14px; font-weight: 600; color: var(--text-primary);
+}
+.about-modal-close {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+}
+.about-modal-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+.about-content {
+  padding: 12px 14px;
+}
+.about-content p {
+  font-size: 13px; line-height: 1.8; color: var(--text-secondary);
+  margin: 0 0 14px; text-indent: 2em;
+}
+.about-content p:first-child {
+  margin-top: 0;
+}
+.about-content .about-signature {
+  text-indent: 0; text-align: right;
+  font-size: 13px; color: var(--text-muted);
+  margin-bottom: 0; padding-top: 4px;
 }
 </style>

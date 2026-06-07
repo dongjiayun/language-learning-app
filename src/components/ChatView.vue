@@ -302,12 +302,20 @@ onUnmounted(() => {
         <div class="popup" @click.stop>
           <div class="popup-head">
             <span class="popup-word">{{ store.vocabSelectedText }}</span>
-            <button class="popup-x" @click="store.dismissVocabTranslation()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+            <div class="popup-head-actions">
+              <button class="popup-x" @click="store.dismissVocabTranslation()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
           </div>
           <p v-if="store.vocabTranslating" class="popup-loading">翻译中...</p>
-          <p v-else class="popup-text">{{ store.vocabSelectedTranslation }}</p>
+          <template v-else>
+            <p class="popup-text">{{ store.vocabSelectedTranslation }}</p>
+            <button class="popup-add-btn" @click="store.addVocabWord(store.vocabSelectedText, store.vocabSelectedTranslation)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              加入生词本
+            </button>
+          </template>
         </div>
       </div>
     </Transition>
@@ -643,17 +651,25 @@ onUnmounted(() => {
 @keyframes scaleIn { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: scale(1); } }
 .popup-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 14px; border-bottom: 0.5px solid var(--border);
+  padding: 14px 14px 0; gap: 8px;
 }
+.popup-head-actions { display: flex; align-items: center; gap: 4px; }
 .popup-word { font-size: 15px; font-weight: 700; color: var(--accent); }
 .popup-x {
   width: 28px; height: 28px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  color: var(--text-muted); transition: background .2s;
+  color: var(--text-muted);
 }
 .popup-x:hover { background: var(--bg-hover); }
 .popup-loading, .popup-text { padding: 14px; font-size: 14px; line-height: 1.6; color: var(--text-primary); }
 .popup-loading { color: var(--text-muted); }
+.popup-add-btn {
+  display: flex; align-items: center; gap: 4px; width: 100%;
+  padding: 8px 14px 12px; font-size: 12px; font-weight: 500;
+  color: var(--accent); border: none; background: none; cursor: pointer;
+  transition: opacity .15s;
+}
+.popup-add-btn:hover { opacity: .8; }
 
 .sidebar-slide-enter-active,
 .sidebar-slide-leave-active {

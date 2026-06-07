@@ -41,12 +41,20 @@ function handleSelectText(e: MouseEvent) {
         <div class="popup" @click.stop>
           <div class="popup-head">
             <span class="popup-word">{{ store.vocabSelectedText }}</span>
-            <button class="popup-x" @click="store.dismissVocabTranslation()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+            <div class="popup-head-actions">
+              <button class="popup-x" @click="store.dismissVocabTranslation()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
           </div>
           <p v-if="store.vocabTranslating" class="popup-loading">翻译中...</p>
-          <p v-else class="popup-text">{{ store.vocabSelectedTranslation }}</p>
+          <template v-else>
+            <p class="popup-text">{{ store.vocabSelectedTranslation }}</p>
+            <button class="popup-add-btn" @click="store.addVocabWord(store.vocabSelectedText, store.vocabSelectedTranslation)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              加入生词本
+            </button>
+          </template>
         </div>
       </div>
     </Transition>
@@ -134,8 +142,8 @@ function handleSelectText(e: MouseEvent) {
   align-items: center;
   justify-content: space-between;
   padding: 12px 14px;
-  border-bottom: 0.5px solid var(--border);
 }
+.popup-head-actions { display: flex; align-items: center; gap: 4px; }
 
 .popup-word {
   font-size: 15px;
@@ -159,6 +167,13 @@ function handleSelectText(e: MouseEvent) {
 }
 
 .popup-loading { color: var(--text-muted); }
+.popup-add-btn {
+  display: flex; align-items: center; gap: 4px; width: 100%;
+  padding: 8px 14px 12px; font-size: 12px; font-weight: 500;
+  color: var(--accent); border: none; background: none; cursor: pointer;
+  transition: opacity .15s;
+}
+.popup-add-btn:hover { opacity: .8; }
 
 .fade-enter-active, .fade-leave-active { transition: opacity .2s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }

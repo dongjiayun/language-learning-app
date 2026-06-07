@@ -360,7 +360,13 @@ function speakKeyword(word: string) {
             </div>
           </div>
           <p v-if="store.vocabTranslating" class="popup-loading">翻译中...</p>
-          <p v-else class="popup-text">{{ store.vocabSelectedTranslation }}</p>
+          <template v-else>
+            <p class="popup-text">{{ store.vocabSelectedTranslation }}</p>
+            <button class="popup-add-btn" @click="store.addVocabWord(store.vocabSelectedText, store.vocabSelectedTranslation)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              加入生词本
+            </button>
+          </template>
         </div>
       </div>
     </Transition>
@@ -903,6 +909,13 @@ function speakKeyword(word: string) {
 .popup-x:hover { background: var(--bg-hover); }
 .popup-loading, .popup-text { padding: 14px; font-size: 14px; line-height: 1.6; color: var(--text-primary); }
 .popup-loading { color: var(--text-muted); }
+.popup-add-btn {
+  display: flex; align-items: center; gap: 4px; width: 100%;
+  padding: 8px 14px 12px; font-size: 12px; font-weight: 500;
+  color: var(--accent); border: none; background: none; cursor: pointer;
+  transition: opacity .15s;
+}
+.popup-add-btn:hover { opacity: .8; }
 
 /* 过渡 */
 .fade-enter-active, .fade-leave-active { transition: opacity .2s; }

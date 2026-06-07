@@ -9,6 +9,7 @@ import VocabularyTraining from './components/VocabularyTraining.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 import HistoryPanel from './components/HistoryPanel.vue'
 import ProgressPanel from './components/ProgressPanel.vue'
+import VocabBookPanel from './components/VocabBookPanel.vue'
 import { version } from '../package.json'
 
 const store = useAppStore()
@@ -34,6 +35,14 @@ function getLangLabel(lang: string): string {
             <rect x="3" y="3" width="18" height="18" rx="2"/>
             <line x1="3" y1="9" x2="21" y2="9"/>
             <line x1="9" y1="21" x2="9" y2="9"/>
+          </svg>
+        </button>
+        <button class="header-btn" @click="store.toggleVocabBook()" title="生词本">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" stroke-linecap="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            <line x1="8" y1="7" x2="16" y2="7"/>
+            <line x1="8" y1="11" x2="14" y2="11"/>
           </svg>
         </button>
       </div>
@@ -140,6 +149,54 @@ function getLangLabel(lang: string): string {
     <SettingsPanel v-if="store.showSettings" />
     <HistoryPanel v-if="store.showHistory" />
     <ProgressPanel v-if="store.showProgress" />
+    <VocabBookPanel />
+    <!-- 全局提示 -->
+    <Transition name="toast-fade">
+      <div v-if="store.vocabAddToast" class="global-toast">{{ store.vocabAddToast }}</div>
+    </Transition>
+    <!-- API 引导提示 -->
+    <Transition name="toast-fade">
+      <div v-if="store.showApiGuide" class="api-guide-overlay" @click.self="store.dismissApiGuide()">
+        <div class="api-guide-modal">
+          <div class="api-guide-header">
+            <span class="api-guide-title">需要配置 API</span>
+            <button class="api-guide-close" @click="store.showApiGuide = ''">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="api-guide-body">
+            <template v-if="store.showApiGuide === 'deepseek'">
+              <div class="api-guide-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              </div>
+              <p class="api-guide-desc">使用 AI 对话、口语练习、词汇训练等功能需要先配置 DeepSeek API 密钥。</p>
+              <div class="api-guide-steps">
+                <p>1. 访问 <a href="https://platform.deepseek.com/api_keys" target="_blank" class="api-guide-link">DeepSeek 开放平台</a> 并注册/登录</p>
+                <p>2. 在「API Keys」页面创建新的 API Key</p>
+                <p>3. 复制密钥后粘贴到设置中保存即可</p>
+              </div>
+            </template>
+            <template v-else-if="store.showApiGuide === 'xfyun'">
+              <div class="api-guide-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+              </div>
+              <p class="api-guide-desc">使用语音识别功能需要先配置科大讯飞语音识别的 AppID、API Key 和 API Secret。</p>
+              <div class="api-guide-steps">
+                <p>1. 访问 <a href="https://www.xfyun.cn" target="_blank" class="api-guide-link">讯飞开放平台</a> 并注册/登录</p>
+                <p>2. 进入控制台 → 「语音识别」服务页面，创建应用</p>
+                <p>3. 在应用详情中获取 AppID、APIKey、APISecret 三个值</p>
+                <p>4. 分别粘贴到设置中保存即可</p>
+              </div>
+              <p class="api-guide-tip">💡 讯飞语音识别每月有免费额度</p>
+            </template>
+          </div>
+          <div class="api-guide-footer">
+            <button class="api-guide-btn primary" @click="store.dismissApiGuide()">前往设置</button>
+            <button class="api-guide-btn ghost" @click="store.showApiGuide = ''">稍后再说</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -322,4 +379,75 @@ function getLangLabel(lang: string): string {
   user-select: none;
   z-index: 0;
 }
+.global-toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  z-index: 9999;
+  padding: 8px 16px; border-radius: 8px;
+  background: var(--bg-primary); border: 0.5px solid var(--border);
+  box-shadow: 0 2px 12px rgba(0,0,0,.15);
+  font-size: 13px; color: var(--accent); font-weight: 500;
+  white-space: nowrap; pointer-events: none;
+}
+.toast-fade-enter-active, .toast-fade-leave-active { transition: all .25s ease; }
+.toast-fade-enter-from, .toast-fade-leave-to { opacity: 0; transform: translateX(-50%) translateY(8px); }
+
+/* API 引导弹窗 */
+.api-guide-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center;
+  -webkit-app-region: no-drag;
+}
+.api-guide-modal {
+  width: 360px; max-height: 80vh;
+  background: var(--bg-primary);
+  border-radius: var(--radius);
+  border: 0.5px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0,0,0,.25);
+  display: flex; flex-direction: column;
+  animation: scaleIn .2s cubic-bezier(.16,1,.3,1);
+}
+@keyframes scaleIn { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+.api-guide-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px 8px;
+}
+.api-guide-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.api-guide-close {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+}
+.api-guide-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+.api-guide-body {
+  padding: 8px 18px 16px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.api-guide-icon { display: flex; justify-content: center; color: var(--accent); opacity: .8; }
+.api-guide-desc { font-size: 13px; line-height: 1.5; color: var(--text-secondary); margin: 0; }
+.api-guide-steps {
+  background: var(--bg-surface); border-radius: 8px; padding: 12px 14px;
+}
+.api-guide-steps p {
+  font-size: 12px; line-height: 1.6; color: var(--text-secondary); margin: 0;
+}
+.api-guide-steps p + p { margin-top: 6px; }
+.api-guide-link { color: var(--accent); text-decoration: underline; }
+.api-guide-tip { font-size: 12px; color: var(--text-muted); margin: 0; }
+.api-guide-footer {
+  display: flex; gap: 8px; padding: 12px 18px 16px;
+  border-top: 0.5px solid var(--border);
+}
+.api-guide-btn {
+  flex: 1; padding: 9px 0; border-radius: 8px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.api-guide-btn.primary {
+  background: var(--accent); color: #fff; border: none;
+}
+.api-guide-btn.primary:hover { opacity: .9; }
+.api-guide-btn.ghost {
+  background: transparent; border: 0.5px solid var(--border); color: var(--text-secondary);
+}
+.api-guide-btn.ghost:hover { background: var(--bg-hover); }
 </style>

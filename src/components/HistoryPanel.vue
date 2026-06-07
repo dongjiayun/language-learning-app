@@ -100,6 +100,55 @@ function formatChatTime(timestamp: number): string {
   if (diffDays < 7) return `${diffDays}天前`
   return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
 }
+
+// ===== 日期分组工具 =====
+type DateGroupLabel = '今天' | '昨天' | '本周' | '更早'
+
+interface DateGroup<T> {
+  label: DateGroupLabel
+  items: T[]
+}
+
+function getDateGroupLabel(date: Date): DateGroupLabel {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterday = new Date(today.getTime() - 86400000)
+
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const diffDays = Math.floor((today.getTime() - d.getTime()) / 86400000)
+
+  if (diffDays === 0) return '今天'
+  if (diffDays === 1) return '昨天'
+
+  // 本周一
+  const dayOfWeek = today.getDay() // 0=Sun, 1=Mon, ...
+  const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+  const monday = new Date(today.getTime() - mondayOffset * 86400000)
+
+  if (d.getTime() >= monday.getTime()) return '本周'
+  return '更早'
+}
+
+const GROUP_ORDER: DateGroupLabel[] = ['今天', '昨天', '本周', '更早']
+
+function groupByDate<T>(items: T[], getTimestamp: (item: T) => number): DateGroup<T>[] {
+  const groups = new Map<DateGroupLabel, T[]>()
+  for (const label of GROUP_ORDER) groups.set(label, [])
+
+  for (const item of items) {
+    const label = getDateGroupLabel(new Date(getTimestamp(item)))
+    groups.get(label)!.push(item)
+  }
+
+  return GROUP_ORDER.filter(label => groups.get(label)!.length > 0).map(label => ({
+    label,
+    items: groups.get(label)!,
+  }))
+}
+
+function dateGroupId(label: DateGroupLabel): string {
+  return `date-group-${label}`
+}
 </script>
 
 <template>
@@ -179,29 +228,32 @@ function formatChatTime(timestamp: number): string {
         </div>
 
         <div v-else class="modal-body">
-          <div v-for="record in store.conversations" :key="record.id" class="record-item">
-            <div class="record-content" @click="handleLoadSpeaking(record)">
-              <div class="record-meta">
-                <span class="record-time">{{ store.formatTime(record.timestamp) }}</span>
-                <span class="record-langs">
-                  <span class="record-tag">{{ getLangLabel(record.sourceLang) }}</span>
-                  <span class="record-arrow">→</span>
-                  <span class="record-tag target">{{ getLangLabel(record.targetLang) }}</span>
-                </span>
+          <template v-for="group in groupByDate(store.conversations, r => r.timestamp)" :key="dateGroupId(group.label)">
+            <div class="date-group-header">{{ group.label }}</div>
+            <div v-for="record in group.items" :key="record.id" class="record-item">
+              <div class="record-content" @click="handleLoadSpeaking(record)">
+                <div class="record-meta">
+                  <span class="record-time">{{ store.formatTime(record.timestamp) }}</span>
+                  <span class="record-langs">
+                    <span class="record-tag">{{ getLangLabel(record.sourceLang) }}</span>
+                    <span class="record-arrow">→</span>
+                    <span class="record-tag target">{{ getLangLabel(record.targetLang) }}</span>
+                  </span>
+                </div>
+                <p class="record-text">{{ record.inputText || '录制对话' }}</p>
+                <div class="record-chips">
+                  <span v-for="(resp, idx) in record.responses.slice(0, 3)" :key="resp.id" class="chip">
+                    {{ idx + 1 }}. {{ resp.french.slice(0, 18) }}{{ resp.french.length > 18 ? '…' : '' }}
+                  </span>
+                </div>
               </div>
-              <p class="record-text">{{ record.inputText || '录制对话' }}</p>
-              <div class="record-chips">
-                <span v-for="(resp, idx) in record.responses.slice(0, 3)" :key="resp.id" class="chip">
-                  {{ idx + 1 }}. {{ resp.french.slice(0, 18) }}{{ resp.french.length > 18 ? '…' : '' }}
-                </span>
-              </div>
+              <button class="record-delete" @click="handleDeleteSpeaking(record.id)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                </svg>
+              </button>
             </div>
-            <button class="record-delete" @click="handleDeleteSpeaking(record.id)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-              </svg>
-            </button>
-          </div>
+          </template>
         </div>
 
         <div v-if="store.conversations.length > 0" class="modal-footer">
@@ -222,28 +274,31 @@ function formatChatTime(timestamp: number): string {
         </div>
 
         <div v-else class="modal-body">
-          <div
-            v-for="session in store.chatSessions"
-            :key="session.id"
-            class="record-item"
-            :class="{ current: session.id === store.currentChatSessionId }"
-          >
-            <div class="record-content" @click="handleSwitchChat(session.id)">
-              <div class="record-meta">
-                <span class="record-time">{{ formatChatTime(session.updatedAt) }}</span>
-                <span class="record-count">{{ session.messageCount }} 条消息</span>
+          <template v-for="group in groupByDate(store.chatSessions, s => s.updatedAt)" :key="dateGroupId(group.label)">
+            <div class="date-group-header">{{ group.label }}</div>
+            <div
+              v-for="session in group.items"
+              :key="session.id"
+              class="record-item"
+              :class="{ current: session.id === store.currentChatSessionId }"
+            >
+              <div class="record-content" @click="handleSwitchChat(session.id)">
+                <div class="record-meta">
+                  <span class="record-time">{{ formatChatTime(session.updatedAt) }}</span>
+                  <span class="record-count">{{ session.messageCount }} 条消息</span>
+                </div>
+                <p class="record-title">{{ session.title }}</p>
+                <p class="record-preview" v-if="session.messages.length > 0">
+                  {{ session.messages[session.messages.length - 1].content.slice(0, 40) }}…
+                </p>
               </div>
-              <p class="record-title">{{ session.title }}</p>
-              <p class="record-preview" v-if="session.messages.length > 0">
-                {{ session.messages[session.messages.length - 1].content.slice(0, 40) }}…
-              </p>
+              <button class="record-delete" @click="handleDeleteChat(session.id)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                </svg>
+              </button>
             </div>
-            <button class="record-delete" @click="handleDeleteChat(session.id)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-              </svg>
-            </button>
-          </div>
+          </template>
         </div>
 
         <div v-if="store.chatSessions.length > 0" class="modal-footer">
@@ -265,24 +320,27 @@ function formatChatTime(timestamp: number): string {
         </div>
 
         <div v-else class="modal-body">
-          <div
-            v-for="record in store.practiceConversations"
-            :key="record.id"
-            class="record-item"
-          >
-            <div class="record-content" @click="handleLoadPractice(record)">
-              <div class="record-meta">
-                <span class="record-time">{{ formatChatTime(record.createdAt) }}</span>
-                <span class="record-count">{{ record.messageCount }} 条对话</span>
+          <template v-for="group in groupByDate(store.practiceConversations, r => r.createdAt)" :key="dateGroupId(group.label)">
+            <div class="date-group-header">{{ group.label }}</div>
+            <div
+              v-for="record in group.items"
+              :key="record.id"
+              class="record-item"
+            >
+              <div class="record-content" @click="handleLoadPractice(record)">
+                <div class="record-meta">
+                  <span class="record-time">{{ formatChatTime(record.createdAt) }}</span>
+                  <span class="record-count">{{ record.messageCount }} 条对话</span>
+                </div>
+                <p class="record-title">{{ record.summary }}</p>
               </div>
-              <p class="record-title">{{ record.summary }}</p>
+              <button class="record-delete" @click="handleDeletePractice(record.id)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                </svg>
+              </button>
             </div>
-            <button class="record-delete" @click="handleDeletePractice(record.id)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-              </svg>
-            </button>
-          </div>
+          </template>
         </div>
 
         <div v-if="store.practiceConversations.length > 0" class="modal-footer">
@@ -304,20 +362,23 @@ function formatChatTime(timestamp: number): string {
         </div>
 
         <div v-else class="modal-body">
-          <div v-for="record in store.vocabRecords" :key="record.id" class="record-item">
-            <div class="record-content" @click="handleLoadVocab(record.id)">
-              <div class="record-meta">
-                <span class="record-time">{{ formatChatTime(record.createdAt) }}</span>
-                <span class="record-count">{{ record.articlesCount }} 篇</span>
+          <template v-for="group in groupByDate(store.vocabRecords, r => r.createdAt)" :key="dateGroupId(group.label)">
+            <div class="date-group-header">{{ group.label }}</div>
+            <div v-for="record in group.items" :key="record.id" class="record-item">
+              <div class="record-content" @click="handleLoadVocab(record.id)">
+                <div class="record-meta">
+                  <span class="record-time">{{ formatChatTime(record.createdAt) }}</span>
+                  <span class="record-count">{{ record.articlesCount }} 篇</span>
+                </div>
+                <p class="record-title">{{ record.summary }}</p>
               </div>
-              <p class="record-title">{{ record.summary }}</p>
+              <button class="record-delete" @click="handleDeleteVocab(record.id)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                </svg>
+              </button>
             </div>
-            <button class="record-delete" @click="handleDeleteVocab(record.id)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-              </svg>
-            </button>
-          </div>
+          </template>
         </div>
 
         <div v-if="store.vocabRecords.length > 0" class="modal-footer">
@@ -443,7 +504,12 @@ function formatChatTime(timestamp: number): string {
 .modal-body {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 16px;
+  padding: 4px 16px 12px;
+}
+
+.date-group-header {
+  font-size: 12px; font-weight: 600; color: var(--text-muted);
+  padding: 12px 4px 6px; letter-spacing: .3px;
 }
 
 .record-item {

@@ -71,9 +71,32 @@ function handleSelectText(e: MouseEvent) {
             <option :value="40">40s</option>
             <option :value="50">50s</option>
             <option :value="60">60s</option>
+            <option :value="90">90s</option>
+            <option :value="120">120s</option>
             <option :value="0">关闭</option>
           </select>
         </div>
+        <!-- 提示等待时间选择 -->
+        <div v-if="store.practiceIsActive" class="interval-select-wrap">
+          <span class="interval-label">回复提示间隔</span>
+          <select
+            v-model="store.practiceSilenceInterval"
+            class="interval-select"
+            title="用户沉默时自动给出回复提示的等待时间"
+          >
+            <option :value="5">5s</option>
+            <option :value="10">10s</option>
+            <option :value="15">15s</option>
+            <option :value="20">20s</option>
+            <option :value="0">关闭</option>
+          </select>
+        </div>
+        <!-- 自动朗读开关 -->
+        <label class="autoread-toggle" :title="store.practiceAutoRead ? 'AI回复后自动朗读' : '关闭自动朗读'">
+          <span class="autoread-label">朗读</span>
+          <input type="checkbox" v-model="store.practiceAutoRead" />
+          <span class="autoread-switch"></span>
+        </label>
         <button
           v-if="!store.practiceIsActive"
           class="start-btn"
@@ -247,12 +270,20 @@ function handleSelectText(e: MouseEvent) {
         <div class="popup" @click.stop>
           <div class="popup-head">
             <span class="popup-word">{{ store.vocabSelectedText }}</span>
-            <button class="popup-x" @click="store.dismissVocabTranslation()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+            <div class="popup-head-actions">
+              <button class="popup-x" @click="store.dismissVocabTranslation()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
           </div>
           <p v-if="store.vocabTranslating" class="popup-loading">翻译中...</p>
-          <p v-else class="popup-text">{{ store.vocabSelectedTranslation }}</p>
+          <template v-else>
+            <p class="popup-text">{{ store.vocabSelectedTranslation }}</p>
+            <button class="popup-add-btn" @click="store.addVocabWord(store.vocabSelectedText, store.vocabSelectedTranslation)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              加入生词本
+            </button>
+          </template>
         </div>
       </div>
     </Transition>
@@ -351,6 +382,45 @@ function handleSelectText(e: MouseEvent) {
   border-color: var(--accent);
   outline: none;
 }
+
+/* 自动朗读开关 */
+.autoread-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: background .2s;
+  flex-shrink: 0;
+}
+.autoread-toggle:hover { background: var(--bg-hover); }
+.autoread-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.autoread-toggle input { display: none; }
+.autoread-switch {
+  width: 28px; height: 16px; border-radius: 10px;
+  background: var(--border);
+  position: relative;
+  transition: background .2s;
+}
+.autoread-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform .2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,.2);
+}
+.autoread-toggle input:checked + .autoread-switch { background: var(--accent); }
+.autoread-toggle input:checked + .autoread-switch::after { transform: translateX(12px); }
 
 .start-btn,
 .stop-btn {
@@ -752,8 +822,9 @@ function handleSelectText(e: MouseEvent) {
 @keyframes scaleIn { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: scale(1); } }
 .popup-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 14px; border-bottom: 0.5px solid var(--border);
+  padding: 12px 14px;
 }
+.popup-head-actions { display: flex; align-items: center; gap: 4px; }
 .popup-word { font-size: 15px; font-weight: 700; color: var(--accent); }
 .popup-x {
   width: 28px; height: 28px; border-radius: 50%;
@@ -763,6 +834,13 @@ function handleSelectText(e: MouseEvent) {
 .popup-x:hover { background: var(--bg-hover); }
 .popup-loading, .popup-text { padding: 14px; font-size: 14px; line-height: 1.6; color: var(--text-primary); }
 .popup-loading { color: var(--text-muted); }
+.popup-add-btn {
+  display: flex; align-items: center; gap: 4px; width: 100%;
+  padding: 8px 14px 12px; font-size: 12px; font-weight: 500;
+  color: var(--accent); border: none; background: none; cursor: pointer;
+  transition: opacity .15s;
+}
+.popup-add-btn:hover { opacity: .8; }
 
 .fade-enter-active, .fade-leave-active { transition: opacity .2s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }

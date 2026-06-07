@@ -1,6 +1,6 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
-import type { AppState, AppMode, FrenchResponseItem, ConversationRecord, ChatMessage, ChatSession, PracticeMessage, PracticeRecord, VocabJournal, VocabJournalRecord, LanguageProficiency, VocabProficiencyLevel, LearningEvent, LanguageProgress, DailyStats } from '@/types'
+import type { AppState, AppMode, FrenchResponseItem, ConversationRecord, ChatMessage, ChatSession, PracticeMessage, PracticeRecord, VocabJournal, VocabJournalRecord, LanguageProficiency, VocabProficiencyLevel, LearningEvent, LanguageProgress, DailyStats, VocabEntry } from '@/types'
 import { STORAGE_KEY_LEARNING_EVENTS } from '@/types'
 import { FrenchResponseService } from '@/services/FrenchResponseService'
 import { ChatService } from '@/services/ChatService'
@@ -23,6 +23,7 @@ const STORAGE_KEY_THEME = 'doulingo_theme'
 const STORAGE_KEY_VOCAB_WORD_COUNT = 'doulingo_vocab_word_count'
 const STORAGE_KEY_VOCAB_ARTICLE_RANGE = 'doulingo_vocab_article_range'
 const STORAGE_KEY_VOCAB_JOURNALS = 'doulingo_vocab_journals'
+const STORAGE_KEY_VOCAB_BOOK = 'doulingo_vocab_book'
 
 export const useAppStore = defineStore('app', () => {
   const state = ref<AppState>('idle')
@@ -97,7 +98,9 @@ export const useAppStore = defineStore('app', () => {
   const practiceHints = ref<string[]>([])
   const practiceHintsLoading = ref(false)
   const practiceIsActive = ref(false)
-  const practiceTopicInterval = ref(20) // AI 等待时间（秒），0=关闭
+  const practiceTopicInterval = ref(60) // AI 等待时间（秒），0=关闭
+  const practiceSilenceInterval = ref(Number(localStorage.getItem('doulingo_practice_silence_interval')) || 20) // 用户静默提示时间（秒），0=关闭
+  const practiceAutoRead = ref(localStorage.getItem('doulingo_practice_autoread') === 'true') // 自动朗读AI回复
   const practiceConversations = ref<PracticeRecord[]>([])
   let practiceTopicTimer: ReturnType<typeof setTimeout> | null = null
   let practiceSilenceTimer: ReturnType<typeof setTimeout> | null = null
@@ -124,6 +127,50 @@ export const useAppStore = defineStore('app', () => {
     JSON.parse(localStorage.getItem(STORAGE_KEY_VOCAB_JOURNALS) || '[]')
   )
   let vocabService: VocabTrainingService | null = null
+
+  // ===== 生词本 =====
+  const showVocabBook = ref(false)
+  const vocabBook = ref<VocabEntry[]>(
+    JSON.parse(localStorage.getItem(STORAGE_KEY_VOCAB_BOOK) || '[]')
+  )
+  const vocabAddToast = ref('')
+
+  let vocabToastTimer: ReturnType<typeof setTimeout> | null = null
+  function clearVocabToast() {
+    if (vocabToastTimer) clearTimeout(vocabToastTimer)
+    vocabToastTimer = setTimeout(() => { vocabAddToast.value = '' }, 2000)
+  }
+
+  function addVocabWord(word: string, translation: string) {
+    if (!word.trim() || !translation.trim()) return
+    // 去重：已存在的词不重复添加
+    if (vocabBook.value.some(e => e.word === word)) {
+      vocabAddToast.value = '已在生词本中'
+      clearVocabToast()
+      return
+    }
+    const entry: VocabEntry = {
+      id: `vb-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      word,
+      translation,
+      sourceLang: targetLang.value,
+      annotateLang: annotateLang.value,
+      addedAt: Date.now(),
+    }
+    vocabBook.value.unshift(entry)
+    localStorage.setItem(STORAGE_KEY_VOCAB_BOOK, JSON.stringify(vocabBook.value))
+    vocabAddToast.value = `✓ 已加入生词本：${word}`
+    clearVocabToast()
+  }
+
+  function removeVocabWord(id: string) {
+    vocabBook.value = vocabBook.value.filter(e => e.id !== id)
+    localStorage.setItem(STORAGE_KEY_VOCAB_BOOK, JSON.stringify(vocabBook.value))
+  }
+
+  function toggleVocabBook() {
+    showVocabBook.value = !showVocabBook.value
+  }
 
   // 计算属性：当前会话的消息列表
   const chatMessages = computed({
@@ -314,6 +361,10 @@ export const useAppStore = defineStore('app', () => {
 
   async function startRecording() {
     if (state.value !== 'idle') return
+    if (!localStorage.getItem('xfyun_app_id') || !localStorage.getItem('xfyun_api_key') || !localStorage.getItem('xfyun_api_secret')) {
+      showApiGuide.value = 'xfyun'
+      return
+    }
 
     state.value = 'recording'
     recordingDuration.value = 0
@@ -414,6 +465,12 @@ export const useAppStore = defineStore('app', () => {
     }
 
     // 生成回答
+    if (!getApiKey()) {
+      showApiGuide.value = 'deepseek'
+      state.value = 'idle'
+      recordingDuration.value = 0
+      return
+    }
     if (!frenchResponse) {
       frenchResponse = new FrenchResponseService()
     }
@@ -611,6 +668,11 @@ export const useAppStore = defineStore('app', () => {
     const text = chatInputText.value.trim()
     if (!text || chatLoading.value) return
 
+    if (!getApiKey()) {
+      showApiGuide.value = 'deepseek'
+      return
+    }
+
     // 确保有当前会话
     if (!currentChatSessionId.value) {
       newChatSession()
@@ -675,6 +737,7 @@ export const useAppStore = defineStore('app', () => {
     const apiKey = localStorage.getItem('xfyun_api_key')
     const apiSecret = localStorage.getItem('xfyun_api_secret')
     if (!appId || !apiKey || !apiSecret) {
+      showApiGuide.value = 'xfyun'
       return
     }
 
@@ -987,6 +1050,10 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
           content,
           timestamp: Date.now(),
         })
+        // 自动朗读
+        if (practiceAutoRead.value) {
+          speakText(content, targetLang.value)
+        }
       }
     } catch {
       addPracticeMsg({
@@ -1017,9 +1084,11 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
     }, interval * 1000)
   }
 
-  /** 设置 5 秒静默提示（用户没说话时触发） */
+  /** 设置静默提示（用户没说话时触发） */
   function startSilenceTimer() {
     if (practiceSilenceTimer) clearTimeout(practiceSilenceTimer)
+    const interval = practiceSilenceInterval.value
+    if (interval <= 0) return // 关闭静默提示
     practiceSilenceTimer = setTimeout(() => {
       if (!practiceIsActive.value) return
        // 检查用户是否已经说了话（有新的 user 消息）
@@ -1028,7 +1097,7 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
         // 用户还没回复，给出提示
         generatePracticeHints()
       }
-    }, 5000)
+    }, interval * 1000)
   }
 
   /** 生成 3 条回复提示 */
@@ -1036,6 +1105,11 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
     if (practiceHintsLoading.value) return
     practiceHintsLoading.value = true
     const key = localStorage.getItem(STORAGE_KEY_API)
+    if (!key) {
+      showApiGuide.value = 'deepseek'
+      practiceHintsLoading.value = false
+      return
+    }
     const langChinese = getTargetLangChinese()
     const lastAi = [...practiceMessages.value].reverse().find(m => m.role === 'ai')
 
@@ -1087,6 +1161,10 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
   /** 开始口语练习 */
   async function startPractice() {
     if (practiceIsActive.value) return
+    if (!getApiKey()) {
+      showApiGuide.value = 'deepseek'
+      return
+    }
     practiceIsActive.value = true
     practiceMessages.value = []
     practiceHints.value = []
@@ -1161,7 +1239,10 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
     const appId = localStorage.getItem('xfyun_app_id')
     const apiKey = localStorage.getItem('xfyun_api_key')
     const apiSecret = localStorage.getItem('xfyun_api_secret')
-    if (!appId || !apiKey || !apiSecret) return
+    if (!appId || !apiKey || !apiSecret) {
+      showApiGuide.value = 'xfyun'
+      return
+    }
 
     // 清除静默提示
     practiceHints.value = []
@@ -1239,7 +1320,10 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
   /** 生成词汇训练周刊 */
   async function generateWeeklyJournal() {
     const key = getApiKey()
-    if (!key) return
+    if (!key) {
+      showApiGuide.value = 'deepseek'
+      return
+    }
 
     // 初始化服务
     if (!vocabService) {
@@ -1546,6 +1630,164 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
     return langProgress.value.find(p => p.lang === lang)
   }
 
+  // ===== 数据导入导出 =====
+  function exportAllData(): string {
+    const data = {
+      exportedAt: new Date().toISOString(),
+      version: '1.4.29',
+      // 配置
+      config: {
+        sourceLang: sourceLang.value,
+        targetLang: targetLang.value,
+        annotateLang: annotateLang.value,
+        nativeLanguage: nativeLanguage.value,
+        theme: theme.value,
+        languageProficiencies: languageProficiencies.value,
+        vocabWordCount: vocabWordCount.value,
+        vocabArticleRange: vocabArticleRange.value,
+      },
+      // 生词本
+      vocabBook: vocabBook.value,
+      // 历史记录
+      conversations: conversations.value,
+      chatSessions: chatSessions.value,
+      practiceConversations: practiceConversations.value,
+      vocabJournals: vocabJournals.value,
+      vocabRecords: vocabRecords.value,
+      // 学习进度
+      learningEvents: learningEvents.value,
+    }
+    return JSON.stringify(data, null, 2)
+  }
+
+  function importAllData(jsonStr: string): { success: boolean; message: string } {
+    try {
+      const data = JSON.parse(jsonStr)
+      if (!data || typeof data !== 'object') {
+        return { success: false, message: '无效的数据格式' }
+      }
+
+      // 1. 配置 — 直接覆盖
+      if (data.config) {
+        const c = data.config
+        if (c.sourceLang) { sourceLang.value = c.sourceLang; localStorage.setItem(STORAGE_KEY_SOURCE_LANG, c.sourceLang) }
+        if (c.targetLang) { targetLang.value = c.targetLang; localStorage.setItem(STORAGE_KEY_TARGET_LANG, c.targetLang) }
+        if (c.annotateLang) { annotateLang.value = c.annotateLang; localStorage.setItem(STORAGE_KEY_ANNOTATE_LANG, c.annotateLang) }
+        if (c.nativeLanguage) { nativeLanguage.value = c.nativeLanguage; localStorage.setItem(STORAGE_KEY_NATIVE_LANG, c.nativeLanguage) }
+        if (c.theme) { setTheme(c.theme) }
+        if (c.languageProficiencies) {
+          languageProficiencies.value = { ...languageProficiencies.value, ...c.languageProficiencies }
+          localStorage.setItem(STORAGE_KEY_LANG_PROFICIENCY, JSON.stringify(languageProficiencies.value))
+        }
+        if (c.vocabWordCount) { setVocabWordCount(c.vocabWordCount) }
+        if (c.vocabArticleRange) { setVocabArticleRange(c.vocabArticleRange) }
+      }
+
+      // 2. 生词本 — 按 word 去重合并
+      if (Array.isArray(data.vocabBook)) {
+        const existingWords = new Set(vocabBook.value.map(e => e.word))
+        for (const entry of data.vocabBook) {
+          if (!existingWords.has(entry.word)) {
+            vocabBook.value.push(entry)
+            existingWords.add(entry.word)
+          }
+        }
+        localStorage.setItem(STORAGE_KEY_VOCAB_BOOK, JSON.stringify(vocabBook.value))
+      }
+
+      // 3. 口语提示记录 — 按 id 去重合并
+      if (Array.isArray(data.conversations)) {
+        const existingIds = new Set(conversations.value.map(c => c.id))
+        for (const item of data.conversations) {
+          if (!existingIds.has(item.id)) {
+            conversations.value.push(item)
+            existingIds.add(item.id)
+          }
+        }
+        localStorage.setItem(STORAGE_KEY_CONVERSATIONS, JSON.stringify(conversations.value))
+      }
+
+      // 4. AI 对话会话 — 按 id 去重合并
+      if (Array.isArray(data.chatSessions)) {
+        const existingIds = new Set(chatSessions.value.map(s => s.id))
+        for (const item of data.chatSessions) {
+          if (!existingIds.has(item.id)) {
+            chatSessions.value.push(item)
+            existingIds.add(item.id)
+          }
+        }
+        localStorage.setItem(STORAGE_KEY_CHAT_SESSIONS, JSON.stringify(chatSessions.value))
+      }
+
+      // 5. 口语练习记录 — 按 id 去重合并
+      if (Array.isArray(data.practiceConversations)) {
+        const existingIds = new Set(practiceConversations.value.map(p => p.id))
+        for (const item of data.practiceConversations) {
+          if (!existingIds.has(item.id)) {
+            practiceConversations.value.push(item)
+            existingIds.add(item.id)
+          }
+        }
+        localStorage.setItem(STORAGE_KEY_PRACTICE, JSON.stringify(practiceConversations.value))
+      }
+
+      // 6. 期刊 — 按 id 去重合并
+      if (Array.isArray(data.vocabJournals)) {
+        const existingIds = new Set(vocabJournals.value.map(j => j.id))
+        for (const item of data.vocabJournals) {
+          if (!existingIds.has(item.id)) {
+            vocabJournals.value.push(item)
+            existingIds.add(item.id)
+          }
+        }
+        localStorage.setItem(STORAGE_KEY_VOCAB_JOURNALS, JSON.stringify(vocabJournals.value))
+      }
+
+      if (Array.isArray(data.vocabRecords)) {
+        const existingIds = new Set(vocabRecords.value.map(r => r.id))
+        for (const item of data.vocabRecords) {
+          if (!existingIds.has(item.id)) {
+            vocabRecords.value.push(item)
+            existingIds.add(item.id)
+          }
+        }
+        localStorage.setItem(STORAGE_KEY_VOCAB_RECORDS, JSON.stringify(vocabRecords.value))
+      }
+
+      // 7. 学习进度 — 按 id 去重合并
+      if (Array.isArray(data.learningEvents)) {
+        const existingIds = new Set(learningEvents.value.map(e => e.id))
+        for (const item of data.learningEvents) {
+          if (!existingIds.has(item.id)) {
+            learningEvents.value.push(item)
+            existingIds.add(item.id)
+          }
+        }
+        localStorage.setItem(STORAGE_KEY_LEARNING_EVENTS, JSON.stringify(learningEvents.value))
+      }
+
+      return { success: true, message: `导入完成：配置已覆盖，共合并 ${data.vocabBook?.length || 0} 条生词、${data.conversations?.length || 0} 条口语记录、${data.chatSessions?.length || 0} 条对话、${data.practiceConversations?.length || 0} 条练习记录、${data.vocabJournals?.length || 0} 篇期刊` }
+    } catch (e: any) {
+      return { success: false, message: '导入失败：文件格式错误' }
+    }
+  }
+
+  // ===== API 引导提示 =====
+  const showApiGuide = ref<'deepseek' | 'xfyun' | ''>('')
+
+  function openApiGuide(guide: 'deepseek' | 'xfyun') {
+    showApiGuide.value = guide
+  }
+
+  function dismissApiGuide() {
+    showApiGuide.value = ''
+    showSettings.value = true
+  }
+
+  // 持久化练习设置
+  watch(practiceAutoRead, (v) => localStorage.setItem('doulingo_practice_autoread', String(v)))
+  watch(practiceSilenceInterval, (v) => localStorage.setItem('doulingo_practice_silence_interval', String(v)))
+
   return {
     state,
     responses,
@@ -1621,6 +1863,8 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
     practiceHintsLoading,
     practiceIsActive,
     practiceTopicInterval,
+    practiceSilenceInterval,
+    practiceAutoRead,
     startPractice,
     stopPractice,
     sendPracticeReply,
@@ -1655,10 +1899,24 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
     dismissVocabTranslation,
     setVocabWordCount,
     setVocabArticleRange,
+    // vocab book
+    showVocabBook,
+    vocabBook,
+    vocabAddToast,
+    addVocabWord,
+    removeVocabWord,
+    toggleVocabBook,
     // progress
     learningEvents,
     langProgress,
     getLangProgress,
     recordLearningEvent,
+    // import/export
+    exportAllData,
+    importAllData,
+    // api guide
+    showApiGuide,
+    openApiGuide,
+    dismissApiGuide,
   }
 })
