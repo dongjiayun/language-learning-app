@@ -12,6 +12,7 @@
     "bump:minor": "node scripts/bump-version.mjs minor",
     "bump:major": "node scripts/bump-version.mjs major",
     "build": "node scripts/bump-version.mjs patch && node scripts/update-changelog.mjs && node scripts/generate-dmg-bg.mjs && ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ vite build --config vite.config.electron.ts && electron-builder",
+    "build:win": "node scripts/build-win.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -54,6 +55,20 @@
         "NSMicrophoneUsageDescription": "外语口语学习助手需要使用麦克风来监听对话并生成外语学习回答。",
         "NSSpeechRecognitionUsageDescription": "外语口语学习助手需要使用语音识别来转录对话内容。"
       }
+    },
+    "win": {
+      "target": ["nsis"],
+      "icon": "build/icon.png",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false,
+      "language": "2052",
+      "installerIcon": "build/icon.png",
+      "uninstallerIcon": "build/icon.png"
     },
     "dmg": {
       "format": "ULFO",

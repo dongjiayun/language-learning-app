@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { spawn, execSync } from 'child_process'
 import { readFileSync, unlinkSync, existsSync, writeFileSync } from 'fs'
+import { tmpdir } from 'os'
 import crypto from 'crypto'
 // @ts-ignore - ws 没有类型声明
 import WebSocket from 'ws'
@@ -69,16 +70,27 @@ app.on('window-all-closed', () => {
 // ===== ffmpeg 录音实现 =====
 /** 查找 ffmpeg 路径 */
 function findFfmpegPath(): string {
-  const candidates = [
-    '/opt/homebrew/bin/ffmpeg',
-    '/usr/local/bin/ffmpeg',
-    '/usr/bin/ffmpeg',
-  ]
+  let candidates: string[]
+  if (process.platform === 'win32') {
+    const localAppData = process.env.LOCALAPPDATA || ''
+    candidates = [
+      'C:\\ffmpeg\\bin\\ffmpeg.exe',
+      'C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe',
+      join(localAppData, 'ffmpeg\\bin\\ffmpeg.exe'),
+    ]
+  } else {
+    candidates = [
+      '/opt/homebrew/bin/ffmpeg',
+      '/usr/local/bin/ffmpeg',
+      '/usr/bin/ffmpeg',
+    ]
+  }
   for (const p of candidates) {
     if (existsSync(p)) return p
   }
   try {
-    return execSync('which ffmpeg', { encoding: 'utf8' }).trim()
+    const cmd = process.platform === 'win32' ? 'where' : 'which'
+    return execSync(`${cmd} ffmpeg`, { encoding: 'utf8' }).trim()
   } catch {
     return 'ffmpeg'
   }
@@ -86,7 +98,40 @@ function findFfmpegPath(): string {
 const ffmpegPath = findFfmpegPath()
 console.log('[ffmpeg] 路径:', ffmpegPath)
 
-const RECORDING_FILE = '/tmp/doulingo_recording.pcm'
+/** Windows: 获取默认麦克风设备名称（通过 ffmpeg -list_devices 枚举） */
+function getWindowsAudioInputName(): string {
+  try {
+    const output = execSync(
+      `${ffmpegPath} -list_devices true -f dshow -i dummy 2>&1`,
+      { encoding: 'utf8', timeout: 10000 }
+    )
+    const lines = output.split('\n')
+    let inAudioSection = false
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (/DirectShow audio devices/i.test(trimmed)) {
+        inAudioSection = true
+        continue
+      }
+      if (inAudioSection) {
+        if (trimmed.startsWith('"') && trimmed.includes('(audio)')) {
+          const match = trimmed.match(/"(.+?)"/)
+          if (match) {
+            console.log('[ffmpeg] Windows 音频设备:', match[1])
+            return match[1]
+          }
+        }
+        if (trimmed.startsWith('"') && !trimmed.includes('(audio)')) continue
+        // 进入 video 段说明音频已结束
+        if (/DirectShow video devices/i.test(trimmed)) break
+      }
+    }
+  } catch {}
+  console.warn('[ffmpeg] 未检测到音频设备，将使用默认')
+  return ''
+}
+
+const RECORDING_FILE = join(tmpdir(), 'doulingo_recording.pcm')
 let recordingProcess: any = null
 let ffmpegLogBuffer = ''
 
@@ -105,16 +150,27 @@ function startFfmpegRecording(): Promise<void> {
 
     console.log('[ffmpeg] 启动录音...')
 
-    recordingProcess = spawn(ffmpegPath, [
+    // 构建 ffmpeg 参数（平台差异仅体现在音频输入源）
+    const ffmpegArgs: string[] = [
       '-y',
       '-loglevel', 'error',
-      '-f', 'avfoundation',
-      '-i', ':0',
       '-ar', '16000',
       '-ac', '1',
       '-f', 's16le',
       RECORDING_FILE,
-    ], {
+    ]
+    if (process.platform === 'win32') {
+      const deviceName = getWindowsAudioInputName()
+      if (deviceName) {
+        ffmpegArgs.unshift('-f', 'dshow', '-i', `audio=${deviceName}`)
+      } else {
+        ffmpegArgs.unshift('-f', 'dshow', '-i', 'audio=')
+      }
+    } else {
+      ffmpegArgs.unshift('-f', 'avfoundation', '-i', ':0')
+    }
+
+    recordingProcess = spawn(ffmpegPath, ffmpegArgs, {
       stdio: ['pipe', 'pipe', 'pipe'],
     })
 
@@ -388,7 +444,51 @@ function findBestVoice(lang: string): string {
   return candidates[0]
 }
 
+// Windows TTS via PowerShell SAPI（适用于 Windows 7+，无需额外安装）
+const WINDOWS_TTS_VOICES: Record<string, string[]> = {
+  'zh-CN': ['Microsoft Huihui Desktop', 'Microsoft Kangkang Desktop', 'Microsoft Yaoyao Desktop'],
+  'en-US': ['Microsoft Zira Desktop', 'Microsoft David Desktop', 'Microsoft Mark'],
+  'fr-FR': ['Microsoft Hortense Desktop', 'Microsoft Julie Desktop'],
+  'ja-JP': ['Microsoft Haruka Desktop', 'Microsoft Ichiro Desktop'],
+}
+
+function ttsSpeakWindows(text: string, lang: string): Promise<any> {
+  const candidates = WINDOWS_TTS_VOICES[lang] || WINDOWS_TTS_VOICES['en-US']!
+  const b64 = Buffer.from(text).toString('base64')
+  // 尝试候选语音，然后用 base64 方式传递文本避免编码问题
+  const voiceSelectionCmd = candidates
+    .map(v => `try{$synth.SelectVoice('${v.replace(/'/g, "''")}')}catch{}`)
+    .join(';')
+  const psCmd = `Add-Type -AssemblyName System.Speech;` +
+    `$synth=New-Object System.Speech.Synthesis.SpeechSynthesizer;` +
+    `${voiceSelectionCmd};` +
+    `$utf8=[System.Text.Encoding]::UTF8;` +
+    `$text=$utf8.GetString([System.Convert]::FromBase64String('${b64}'));` +
+    `$synth.Speak($text)`
+
+  return new Promise((resolve) => {
+    const proc = spawn('powershell.exe', [
+      '-NoProfile', '-NonInteractive', '-Command', psCmd,
+    ], { stdio: ['ignore', 'pipe', 'pipe'] })
+    const timeout = setTimeout(() => {
+      try { proc.kill() } catch {}
+      resolve({ success: true })
+    }, 120000)
+    proc.on('close', () => { clearTimeout(timeout); resolve({ success: true }) })
+    proc.on('error', (err: Error) => {
+      clearTimeout(timeout)
+      resolve({ success: false, error: err.message })
+    })
+  })
+}
+
 ipcMain.handle('tts-speak', async (_, params: { text: string; lang: string }) => {
+  // === Windows 分支：使用 PowerShell SAPI ===
+  if (process.platform === 'win32') {
+    return ttsSpeakWindows(params.text, params.lang)
+  }
+
+  // === macOS 分支（现有逻辑，完全不变） ===
   if (currentTtsProcess) {
     try { currentTtsProcess.kill('SIGINT') } catch {}
     currentTtsProcess = null
@@ -508,8 +608,8 @@ ipcMain.handle('recognize-audio-blob', async (_, params: {
 }) => {
   try {
     // 1. 将 base64 写为临时 webm 文件
-    const webmFile = '/tmp/doulingo_input.webm'
-    const pcmFile = '/tmp/doulingo_input.pcm'
+    const webmFile = join(tmpdir(), 'doulingo_input.webm')
+    const pcmFile = join(tmpdir(), 'doulingo_input.pcm')
     const audioBuf = Buffer.from(params.audioBase64, 'base64')
     writeFileSync(webmFile, audioBuf)
     console.log('[AudioBlob] 收到音频:', audioBuf.length, 'bytes, 前20字节hex:', audioBuf.subarray(0, 20).toString('hex'))

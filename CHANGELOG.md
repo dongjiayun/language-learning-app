@@ -2,7 +2,20 @@
 
 ## v1.8.5 (2026-06-08)
 
-<!-- 请在此处填写 新增/变更/修复 内容 -->
+### 新增
+- Windows 打包适配：兼容 `.exe` 安装包构建（`npm run build:win`）
+- 新增 `scripts/build-win.mjs` — Windows 一键构建脚本，包含环境检查、依赖安装、版本升级、CHANGELOG 更新、electron-builder 打包
+- 新增 Windows 测试套件（72 个测试用例），覆盖主进程函数、跨平台服务、打包配置
+
+### 变更
+- `electron/main.ts`：通过 `process.platform` 分支实现 Windows 兼容
+  - `findFfmpegPath()`：添加 Windows 路径（`C:\ffmpeg\bin\`、`%LOCALAPPDATA%` 等），`which`/`where` 命令自动适配
+  - `getWindowsAudioInputName()`：`ffmpeg -list_devices` 枚举 dshow 音频设备
+  - 录音：Windows 使用 `-f dshow`，macOS 保持 `-f avfoundation` 不变
+  - TTS 语音合成：Windows 使用 PowerShell SAPI（`System.Speech`），macOS 保持 `say` 命令不变
+  - 临时文件路径：统一使用 `os.tmpdir()` 替代硬编码 `/tmp`，跨平台兼容
+- `package.json`：补充 `win` + `nsis` 打包配置（Nsis 安装包，支持自定义安装目录、简体中文）
+- `.gitignore`：新增 `release/` 和 `*.exe` 排除规则
 
 ---
 
