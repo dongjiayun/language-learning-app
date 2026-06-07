@@ -60,8 +60,8 @@ describe('package.json — Windows 构建配置', () => {
       expect(pkg.build.win.target).toContain('nsis')
     })
 
-    it('win.icon 应为 build/icon.png', () => {
-      expect(pkg.build.win.icon).toBe('build/icon.png')
+    it('win.icon 应为 build/icon.ico', () => {
+      expect(pkg.build.win.icon).toBe('build/icon.ico')
     })
 
     it('win.artifactName 应使用正确的命名模板', () => {
@@ -95,9 +95,9 @@ describe('package.json — Windows 构建配置', () => {
       expect(pkg.build.nsis.deleteAppDataOnUninstall).toBe(false)
     })
 
-    it('应该包含 installerIcon 和 uninstallerIcon', () => {
-      expect(pkg.build.nsis.installerIcon).toBe('build/icon.png')
-      expect(pkg.build.nsis.uninstallerIcon).toBe('build/icon.png')
+    it('应该包含 installerIcon 和 uninstallerIcon（.ico 格式）', () => {
+      expect(pkg.build.nsis.installerIcon).toBe('build/icon.ico')
+      expect(pkg.build.nsis.uninstallerIcon).toBe('build/icon.ico')
     })
   })
 
@@ -188,10 +188,10 @@ describe('scripts/build-win.mjs — 构建脚本', () => {
     expect(content).toContain('update-changelog')
   })
 
-  it('构建产物路径应为 release/', () => {
-    const content = readFile(scriptPath)
-    expect(content).toContain('release/')
-  })
+  it('构建产物路径应为 dist/', () => {
+      const content = readFile(scriptPath)
+      expect(content).toContain('dist/')
+    })
 })
 
 // ============================================================

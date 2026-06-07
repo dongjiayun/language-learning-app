@@ -460,7 +460,7 @@ function onProficiencyChange(lang: string) {
             <span>数据导入导出</span>
           </div>
           <div class="section-card">
-            <p class="import-hint">导出所有配置、生词本、历史记录和学习进度为 JSON 文件。导入时使用合并策略，不会丢失已有数据。</p>
+            <p class="import-hint">导出所有配置、API 密钥、生词本、历史记录、强化训练、写作训练和学习进度为 JSON 文件。导入时使用合并策略，不会丢失已有数据。API 密钥将一同导入导出，请注意保管好导出文件。</p>
             <div class="import-actions">
               <button class="api-btn primary" @click="handleExport">导出数据</button>
               <button class="api-btn ghost" @click="handleImport">导入数据</button>

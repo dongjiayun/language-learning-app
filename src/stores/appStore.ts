@@ -2128,7 +2128,7 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
   function exportAllData(): string {
     const data = {
       exportedAt: new Date().toISOString(),
-      version: '1.4.29',
+      version: '1.5.0',
       // 配置
       config: {
         sourceLang: sourceLang.value,
@@ -2139,6 +2139,16 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
         languageProficiencies: languageProficiencies.value,
         vocabWordCount: vocabWordCount.value,
         vocabArticleRange: vocabArticleRange.value,
+        practiceAutoRead: practiceAutoRead.value,
+        practiceSilenceInterval: practiceSilenceInterval.value,
+        practiceTopicInterval: practiceTopicInterval.value,
+      },
+      // API 密钥
+      apiKeys: {
+        deepseek: localStorage.getItem(STORAGE_KEY_API) || '',
+        xfyunAppId: localStorage.getItem('xfyun_app_id') || '',
+        xfyunApiKey: localStorage.getItem('xfyun_api_key') || '',
+        xfyunApiSecret: localStorage.getItem('xfyun_api_secret') || '',
       },
       // 生词本
       vocabBook: vocabBook.value,
@@ -2148,8 +2158,14 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
       practiceConversations: practiceConversations.value,
       vocabJournals: vocabJournals.value,
       vocabRecords: vocabRecords.value,
+      // 强化训练
+      trainingHistory: trainingHistory.value,
+      // 写作训练
+      writingHistory: writingHistory.value,
       // 学习进度
       learningEvents: learningEvents.value,
+      // API 用量
+      tokenUsage: tokenUsage.value,
     }
     return JSON.stringify(data, null, 2)
   }
@@ -2175,6 +2191,21 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
         }
         if (c.vocabWordCount) { setVocabWordCount(c.vocabWordCount) }
         if (c.vocabArticleRange) { setVocabArticleRange(c.vocabArticleRange) }
+        if (c.practiceAutoRead !== undefined) { practiceAutoRead.value = c.practiceAutoRead }
+        if (c.practiceSilenceInterval !== undefined) { practiceSilenceInterval.value = c.practiceSilenceInterval }
+        if (c.practiceTopicInterval !== undefined) { practiceTopicInterval.value = c.practiceTopicInterval }
+      }
+
+      // 1b. API 密钥 — 直接覆盖
+      if (data.apiKeys) {
+        const k = data.apiKeys
+        if (k.deepseek) {
+          localStorage.setItem(STORAGE_KEY_API, k.deepseek)
+          if (frenchResponse) frenchResponse.setApiKey(k.deepseek)
+        }
+        if (k.xfyunAppId) localStorage.setItem('xfyun_app_id', k.xfyunAppId)
+        if (k.xfyunApiKey) localStorage.setItem('xfyun_api_key', k.xfyunApiKey)
+        if (k.xfyunApiSecret) localStorage.setItem('xfyun_api_secret', k.xfyunApiSecret)
       }
 
       // 2. 生词本 — 按 word 去重合并
@@ -2248,7 +2279,31 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
         localStorage.setItem(STORAGE_KEY_VOCAB_RECORDS, JSON.stringify(vocabRecords.value))
       }
 
-      // 7. 学习进度 — 按 id 去重合并
+      // 7. 强化训练历史 — 按 id 去重合并
+      if (Array.isArray(data.trainingHistory)) {
+        const existingIds = new Set(trainingHistory.value.map(h => h.id))
+        for (const item of data.trainingHistory) {
+          if (!existingIds.has(item.id)) {
+            trainingHistory.value.push(item)
+            existingIds.add(item.id)
+          }
+        }
+        localStorage.setItem(STORAGE_KEY_TRAINING_HISTORY, JSON.stringify(trainingHistory.value))
+      }
+
+      // 8. 写作训练历史 — 按 id 去重合并
+      if (Array.isArray(data.writingHistory)) {
+        const existingIds = new Set(writingHistory.value.map(h => h.id))
+        for (const item of data.writingHistory) {
+          if (!existingIds.has(item.id)) {
+            writingHistory.value.push(item)
+            existingIds.add(item.id)
+          }
+        }
+        localStorage.setItem(STORAGE_KEY_WRITING_HISTORY, JSON.stringify(writingHistory.value))
+      }
+
+      // 9. 学习进度 — 按 id 去重合并
       if (Array.isArray(data.learningEvents)) {
         const existingIds = new Set(learningEvents.value.map(e => e.id))
         for (const item of data.learningEvents) {
@@ -2260,7 +2315,42 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
         localStorage.setItem(STORAGE_KEY_LEARNING_EVENTS, JSON.stringify(learningEvents.value))
       }
 
-      return { success: true, message: `导入完成：配置已覆盖，共合并 ${data.vocabBook?.length || 0} 条生词、${data.conversations?.length || 0} 条口语记录、${data.chatSessions?.length || 0} 条对话、${data.practiceConversations?.length || 0} 条练习记录、${data.vocabJournals?.length || 0} 篇期刊` }
+      // 10. API 用量 — 累计合并
+      if (data.tokenUsage) {
+        const t = data.tokenUsage
+        if (t.promptTokens) tokenUsage.value.promptTokens += t.promptTokens
+        if (t.completionTokens) tokenUsage.value.completionTokens += t.completionTokens
+        if (t.totalTokens) tokenUsage.value.totalTokens += t.totalTokens
+        if (t.totalCost) tokenUsage.value.totalCost += t.totalCost
+        if (t.byFeature) {
+          if (!tokenUsage.value.byFeature) tokenUsage.value.byFeature = {}
+          for (const [feature, usage] of Object.entries(t.byFeature) as [string, any][]) {
+            if (!tokenUsage.value.byFeature[feature]) {
+              tokenUsage.value.byFeature[feature] = { promptTokens: 0, completionTokens: 0 }
+            }
+            tokenUsage.value.byFeature[feature].promptTokens += usage.promptTokens || 0
+            tokenUsage.value.byFeature[feature].completionTokens += usage.completionTokens || 0
+          }
+        }
+        localStorage.setItem(STORAGE_KEY_TOKEN_USAGE, JSON.stringify(tokenUsage.value))
+      }
+
+      const parts: string[] = []
+      if (data.apiKeys?.deepseek) parts.push('DeepSeek 密钥')
+      if (data.apiKeys?.xfyunAppId) parts.push('讯飞密钥')
+      parts.push(
+        `配置已覆盖`,
+        `${data.vocabBook?.length || 0} 条生词`,
+        `${data.conversations?.length || 0} 条口语记录`,
+        `${data.chatSessions?.length || 0} 条对话`,
+        `${data.practiceConversations?.length || 0} 条练习记录`,
+        `${data.vocabJournals?.length || 0} 篇期刊`,
+        `${data.trainingHistory?.length || 0} 条强化训练`,
+        `${data.writingHistory?.length || 0} 条写作训练`,
+        `${data.learningEvents?.length || 0} 条学习事件`,
+      )
+      if (data.tokenUsage) parts.push('API 用量')
+      return { success: true, message: `导入完成：${parts.join('，')}` }
     } catch (e: any) {
       return { success: false, message: '导入失败：文件格式错误' }
     }
