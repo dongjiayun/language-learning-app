@@ -6,3 +6,4 @@ dist-electron/
 yarn-error.log
 release/
 *.exe
+*.ico

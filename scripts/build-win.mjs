@@ -10,6 +10,7 @@
  * 前置依赖（Windows 环境需要安装）：
  *   - Node.js 18+
  *   - Yarn
+ *   - Python 3（用于生成 .ico 图标）
  *   - ffmpeg（加入 PATH 环境变量）
  *   - Git
  */
@@ -46,6 +47,19 @@ try {
   process.exit(1)
 }
 
+// 检查 Python（用于生成 .ico）
+try {
+  execSync('python3 --version', { stdio: 'pipe' })
+  console.log('  Python3: 已找到')
+} catch {
+  try {
+    execSync('python --version', { stdio: 'pipe' })
+    console.log('  Python: 已找到')
+  } catch {
+    console.warn('  ⚠ 未找到 Python，将跳过 .ico 图标生成')
+  }
+}
+
 // 检查 ffmpeg（非必需，提示即可）
 try {
   execSync('ffmpeg -version', { stdio: 'pipe' })
@@ -74,6 +88,27 @@ console.log('')
 
 // ---- 构建 ----
 console.log('[5/5] 构建 Windows 安装包...')
+console.log('')
+
+// 生成 .ico 图标
+const icoScript = 'scripts/png2ico.py'
+if (existsSync(icoScript)) {
+  console.log('  生成 Windows 图标 (icon.ico)...')
+  try {
+    execSync(`python3 ${icoScript} build/icon.png build/icon.ico`, { stdio: 'pipe' })
+    console.log('  ✓ icon.ico 生成成功')
+  } catch {
+    try {
+      execSync(`python ${icoScript} build/icon.png build/icon.ico`, { stdio: 'pipe' })
+      console.log('  ✓ icon.ico 生成成功')
+    } catch (e) {
+      console.warn('  ⚠ icon.ico 生成失败，将使用 PNG（需手动转换）')
+    }
+  }
+} else {
+  console.warn('  ⚠ 未找到 png2ico.py 脚本')
+}
+
 console.log('  (此步骤需要下载 Electron 和 NSIS 工具，耗时较长)')
 console.log('')
 
@@ -89,5 +124,5 @@ run('electron-builder --win --publish never', env)
 console.log('')
 console.log('========================================')
 console.log('  ✓ Windows 构建完成')
-console.log('  安装包位置: release/')
+console.log('  安装包位置: dist/')
 console.log('========================================')
