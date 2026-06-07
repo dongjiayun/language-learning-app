@@ -39,15 +39,173 @@ const categories = computed(() => {
   return Array.from(cats)
 })
 
-const allArticles = computed(() => {
-  if (!store.vocabJournal?.articles.length) return []
-  if (!selectedCategory.value) return store.vocabJournal.articles
-  return store.vocabJournal.articles.filter((a) => a.category === selectedCategory.value)
-})
-
 const difficultyLabel = (d: string) => ({
   beginner: '初级', intermediate: '中级', advanced: '高级',
 }[d] || d)
+
+// ===== 报纸排版引擎（WashPost 风格） =====
+const newspaperRef = ref<HTMLElement | null>(null)
+const containerWidth = ref(600)
+
+let resizeObserver: ResizeObserver | null = null
+
+onMounted(() => {
+  document.addEventListener('mouseup', onDocumentMouseUp)
+  if (newspaperRef.value) {
+    resizeObserver = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect?.width
+      if (w) containerWidth.value = w
+    })
+    resizeObserver.observe(newspaperRef.value)
+  }
+})
+onUnmounted(() => {
+  document.removeEventListener('mouseup', onDocumentMouseUp)
+  resizeObserver?.disconnect()
+})
+
+// 固定尺寸常量
+const GAP = 10
+const HL_H = 220          // 头条高度
+const SEC_H = 28           // 版块标题高度
+
+/** 根据文章内容和列宽（px）估算卡片高度 */
+function cardH(a: VocabArticle, hasImage: boolean, colW: number): number {
+  // body padding: pt10 + pb10 = 20
+  const bodyPad = 20
+  // 分类标签高度 + gap
+  const badgeH = 16
+  const gap1 = 4 // badge ↔ title
+  const gap2 = 4 // title ↔ summary
+
+  // 标题：featured 14px / compact 12px，行高 1.3
+  const titleFz = hasImage ? 14 : 12
+  const charsPerLine = Math.floor((colW - 24) / (titleFz * 0.6))
+  const titleLines = Math.ceil(a.title.length / Math.max(charsPerLine, 6))
+  const titleH = Math.min(titleLines * titleFz * 1.3, titleFz * 1.3 * 3)
+
+  // 摘要：featured 11px / compact 10px，行高 1.4
+  const sumFz = hasImage ? 11 : 10
+  const sumCharsPerLine = Math.floor((colW - 24) / (sumFz * 0.55))
+  const sumLines = Math.ceil(a.summary.length / Math.max(sumCharsPerLine, 8))
+  const summaryH = Math.min(sumLines * sumFz * 1.4, sumFz * 1.4 * 3)
+
+  if (hasImage) {
+    // 图片占 52%，文本占 48%
+    const textH = bodyPad + badgeH + gap1 + titleH + gap2 + summaryH
+    const imgH = Math.max(80, Math.round(textH / 0.48 * 0.52))
+    return imgH + textH
+  }
+  return bodyPad + badgeH + gap1 + titleH + gap2 + summaryH
+}
+
+interface Card {
+  id: string
+  type: 'headline' | 'section' | 'article'
+  article?: VocabArticle
+  category?: string
+  left: number
+  top: number
+  width: number
+  height: number
+  hasImage: boolean
+}
+
+const newspaperLayout = computed((): { cards: Card[]; totalH: number } => {
+  const articles = store.vocabJournal?.articles
+  if (!articles?.length) return { cards: [], totalH: 200 }
+
+  const w = containerWidth.value
+  const gap = GAP
+  // 列数：自适应
+  const cols = w >= 700 ? 3 : 2
+  // 列宽（px）：平分容器宽度
+  const colW = Math.floor((w - gap * (cols - 1)) / cols)
+
+  const cards: Card[] = []
+  let cursorY = 0
+
+  // ===== 1. 头条 =====
+  const hl = articles[0]
+  cards.push({
+    id: 'hl',
+    type: 'headline',
+    article: hl,
+    left: 0, top: cursorY, width: w, height: HL_H,
+    hasImage: true,
+  })
+  cursorY += HL_H + gap
+
+  // ===== 2. 版块分组 =====
+  const rest = articles.slice(1)
+  interface Group { category: string; articles: VocabArticle[] }
+  let groups: Group[]
+
+  if (selectedCategory.value) {
+    groups = [{ category: selectedCategory.value, articles: rest.filter(a => a.category === selectedCategory.value) }]
+  } else {
+    const order: string[] = []
+    const map = new Map<string, VocabArticle[]>()
+    for (const a of rest) {
+      if (!map.has(a.category)) { map.set(a.category, []); order.push(a.category) }
+      map.get(a.category)!.push(a)
+    }
+    groups = order.map(c => ({ category: c, articles: map.get(c)! }))
+  }
+
+  for (const grp of groups) {
+    if (!grp.articles.length) continue
+    const n = grp.articles.length
+
+    // -- 2a. 版块标题（全宽） --
+    cards.push({
+      id: `sec-${grp.category}`,
+      type: 'section',
+      category: grp.category,
+      left: 0, top: cursorY, width: w, height: SEC_H,
+      hasImage: false,
+    })
+    cursorY += SEC_H + gap
+
+    // -- 2b. 版块内文章 --
+    const rows = Math.ceil(n / cols)
+    for (let row = 0; row < rows; row++) {
+      // 先算出这一行所有文章的高度，取最大值作为行高
+      const rowIdxStart = row * cols
+      const rowCount = Math.min(n - rowIdxStart, cols)
+      const rowHeights: number[] = []
+      for (let c = 0; c < rowCount; c++) {
+        const idx = rowIdxStart + c
+        const a = grp.articles[idx]
+        const feat = idx < cols
+        rowHeights.push(cardH(a, feat, colW))
+      }
+      const rowH = Math.max(...rowHeights)
+
+      for (let c = 0; c < rowCount; c++) {
+        const idx = rowIdxStart + c
+        const a = grp.articles[idx]
+        const isFeatured = idx < cols
+        cards.push({
+          id: a.id,
+          type: 'article',
+          article: a,
+          left: c * (colW + gap),
+          top: cursorY,
+          width: colW,
+          height: rowH,
+          hasImage: isFeatured,
+        })
+      }
+      cursorY += rowH + gap
+    }
+
+    // 组与组之间多留一点间距
+    cursorY += gap
+  }
+
+  return { cards, totalH: cursorY }
+})
 
 function openArticle(a: VocabArticle) {
   selectedArticle.value = a
@@ -104,39 +262,69 @@ function speakVocabWord() {
 function speakKeyword(word: string) {
   store.speakText(word, store.targetLang)
 }
+
+function handleDeleteJournal(id: string) {
+  if (confirm('确定删除这份期刊？')) {
+    store.deleteVocabJournal(id)
+  }
+}
+
+function handleClearAllJournals() {
+  if (confirm('确定清空所有历史期刊？')) {
+    store.vocabJournals = []
+    store.vocabRecords = []
+    store.vocabJournal = null
+    localStorage.removeItem('doulingo_vocab_journals')
+    localStorage.removeItem('doulingo_vocab_records')
+    localStorage.removeItem('doulingo_vocab_journal')
+  }
+}
 </script>
 
 <template>
   <div class="vocab-view">
     <template v-if="!selectedArticle">
-      <div class="vocab-layout">
-        <aside class="vocab-sidebar" :class="{ collapsed: !sidebarOpen }">
-          <div class="sidebar-header">
-            <span class="sidebar-title">📰 历史期刊</span>
-            <button class="sidebar-close-btn" @click="toggleSidebar" title="收起侧栏">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
-          <div class="sidebar-list">
-            <div
-              v-for="j in store.vocabJournals"
-              :key="j.id"
-              class="sidebar-item"
-              :class="{ active: store.vocabJournal?.id === j.id }"
-              @click="store.loadVocabJournal(j.id); selectedCategory = null; sidebarOpen = false;"
-            >
-              <div class="sidebar-item-top">
-                <span class="sidebar-item-date">{{ j.date }}</span>
-                <span class="sidebar-item-count">{{ j.articles.length }} 篇</span>
-              </div>
-              <div class="sidebar-item-lang">{{ store.getLangLabel(j.targetLang) }}</div>
+      <!-- 历史期刊侧栏（悬浮弹出） -->
+      <Transition name="sidebar-pop">
+        <aside v-if="sidebarOpen" class="vocab-sidebar">
+          <div class="sidebar-backdrop" @click="toggleSidebar" />
+          <div class="sidebar-panel">
+            <div class="sidebar-header">
+              <span class="sidebar-title">📰 历史期刊</span>
+              <button class="sidebar-close-btn" @click="toggleSidebar" title="收起侧栏">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
             </div>
-            <div v-if="store.vocabJournals.length === 0" class="sidebar-empty">
-              暂无历史期刊
+            <div class="sidebar-list">
+              <div
+                v-for="j in store.vocabJournals"
+                :key="j.id"
+                class="sidebar-item"
+                :class="{ active: store.vocabJournal?.id === j.id }"
+                @click="store.loadVocabJournal(j.id); selectedCategory = null; sidebarOpen = false;"
+              >
+                <div class="sidebar-item-top">
+                  <span class="sidebar-item-date">{{ j.date }}</span>
+                  <span class="sidebar-item-count">{{ j.articles.length }} 篇</span>
+                </div>
+                <div class="sidebar-item-bottom">
+                  <span class="sidebar-item-lang">{{ store.getLangLabel(j.targetLang) }}</span>
+                  <button class="sidebar-item-del" @click.stop="handleDeleteJournal(j.id)" title="删除此期刊">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div v-if="store.vocabJournals.length === 0" class="sidebar-empty">
+                暂无历史期刊
+              </div>
+            </div>
+            <div v-if="store.vocabJournals.length > 0" class="sidebar-footer">
+              <button class="sidebar-clear-btn" @click="handleClearAllJournals">清空全部</button>
             </div>
           </div>
         </aside>
-        <div class="vocab-main">
+      </Transition>
+      <div class="vocab-main">
       <!-- 顶栏 -->
       <div class="vocab-bar">
         <div class="vocab-bar-left">
@@ -213,16 +401,16 @@ function speakKeyword(word: string) {
         <p class="loading-sub">每篇约 {{ store.vocabWordCount }} 词 · {{ store.vocabArticleRange }} 篇文章</p>
       </div>
 
-      <!-- 期刊首页 -->
+      <!-- 期刊首页：报纸排版（绝对定位） -->
       <div v-if="store.vocabJournal && !store.vocabLoading" class="home">
         <!-- 刊头 -->
         <div class="masthead">
           <div class="masthead-top">
-            <span class="masthead-badge">本周精选</span>
-            <span class="masthead-issue">{{ store.vocabJournal.date }}</span>
+            <span class="masthead-badge">{{ store.vocabJournal.date }}</span>
+            <span class="masthead-issue">{{ store.getLangLabel(store.vocabJournal.targetLang) }} · {{ store.vocabJournal.articles.length }} 篇</span>
           </div>
           <h1 class="masthead-title">{{ store.getLangLabel(store.vocabJournal.targetLang) }} 词汇期刊</h1>
-          <p class="masthead-desc">{{ store.vocabJournal.articles.length }} 篇 · 适配 {{ store.languageProficiencies[store.targetLang] ? store.getProficiencyLabel(store.languageProficiencies[store.targetLang]) : store.vocabUserLevel }}</p>
+          <p class="masthead-desc">{{ store.vocabJournal.date }} · {{ store.languageProficiencies[store.targetLang] ? store.getProficiencyLabel(store.languageProficiencies[store.targetLang]) : store.vocabUserLevel }}</p>
         </div>
 
         <!-- 分类栏 -->
@@ -231,25 +419,49 @@ function speakKeyword(word: string) {
           <button v-for="cat in categories" :key="cat" class="cat-chip" :class="{ active: selectedCategory === cat }" @click="selectedCategory = cat">{{ cat }}</button>
         </div>
 
-        <!-- 卡片网格 -->
-        <div class="card-grid">
-          <div
-            v-for="a in allArticles"
-            :key="a.id"
-            class="card"
-            @click="openArticle(a)"
-          >
-            <div class="card-img" :style="{ backgroundImage: `url(${a.imageUrl})` }">
-              <div class="card-diff" :class="a.difficulty">{{ difficultyLabel(a.difficulty) }}</div>
-            </div>
-            <div class="card-body">
-              <div class="card-cat" :class="a.category">{{ a.category }}</div>
-              <h3 class="card-title">{{ a.title }}</h3>
-              <p class="card-summary">{{ a.summary }}</p>
-            </div>
+        <!-- 报纸版面（绝对定位容器） -->
+        <div ref="newspaperRef" class="newspaper-scroll">
+          <div class="newspaper-layout" :style="{ height: newspaperLayout.totalH + 'px' }">
+             <template v-for="c in newspaperLayout.cards" :key="c.id">
+              <!-- 头条 -->
+              <div v-if="c.type === 'headline' && c.article"
+                 class="np-cell np-headline"
+                 :style="{ left: c.left + 'px', top: c.top + 'px', width: c.width + 'px', height: c.height + 'px' }"
+                 @click="openArticle(c.article)"
+               >
+                 <div class="np-hl-img" :style="{ backgroundImage: `url(${c.article.imageUrl})` }">
+                   <span class="np-diff" :class="c.article.difficulty">{{ difficultyLabel(c.article.difficulty) }}</span>
+                 </div>
+                 <div class="np-hl-body">
+                   <span class="np-cat" :class="c.article.category">{{ c.article.category }}</span>
+                   <h2 class="np-hl-title">{{ c.article.title }}</h2>
+                   <p class="np-hl-summary">{{ c.article.summary }}</p>
+                 </div>
+               </div>
+              <!-- section -->
+              <div v-else-if="c.type === 'section'"
+                class="np-cell np-section"
+                :style="{ left: c.left + 'px', top: c.top + 'px', width: c.width + 'px', height: c.height + 'px' }"
+              >
+                <span class="np-section-label">{{ c.category }}</span>
+              </div>
+              <!-- 文章 -->
+              <div v-else-if="c.type === 'article' && c.article"
+                 class="np-cell np-cell-article"
+                 :class="{ 'np-has-img': c.hasImage }"
+                 :style="{ left: c.left + 'px', top: c.top + 'px', width: c.width + 'px', height: c.height + 'px' }"
+                 @click="openArticle(c.article)"
+               >
+                 <div v-if="c.hasImage" class="np-cell-img" :style="{ backgroundImage: `url(${c.article.imageUrl})` }" />
+                 <div class="np-cell-body">
+                   <span class="np-cat" :class="c.article.category">{{ c.article.category }}</span>
+                   <h3 class="np-cell-title">{{ c.article.title }}</h3>
+                   <p class="np-cell-summary">{{ c.article.summary }}</p>
+                 </div>
+               </div>
+            </template>
           </div>
         </div>
-      </div>
       </div>
     </div>
     </template>
@@ -412,30 +624,49 @@ function speakKeyword(word: string) {
   position: relative;
 }
 
-/* ===== 侧边栏布局 ===== */
-.vocab-layout {
-  flex: 1;
+/* ===== 侧边栏（悬浮弹出） ===== */
+.vocab-sidebar {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
   display: flex;
-  overflow: hidden;
+  align-items: stretch;
 }
 
-.vocab-sidebar {
-  width: 180px;
+.sidebar-backdrop {
+  flex: 1;
+  background: rgba(0,0,0,.25);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.sidebar-panel {
+  width: 200px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  border-right: 0.5px solid var(--border);
   background: var(--bg-secondary);
+  border-right: 0.5px solid var(--border);
   overflow: hidden;
-  transition: width .25s ease, opacity .2s ease;
-  white-space: nowrap;
+  order: -1;
 }
 
-.vocab-sidebar.collapsed {
-  width: 0;
-  border-right: none;
+/* sidebar-pop transition */
+.sidebar-pop-enter-active, .sidebar-pop-leave-active {
+  transition: opacity .2s ease;
+}
+.sidebar-pop-enter-active .sidebar-panel,
+.sidebar-pop-leave-active .sidebar-panel {
+  transition: transform .2s ease;
+}
+.sidebar-pop-enter-from, .sidebar-pop-leave-to {
   opacity: 0;
-  pointer-events: none;
+}
+.sidebar-pop-enter-from .sidebar-panel {
+  transform: translateX(-100%);
+}
+.sidebar-pop-leave-to .sidebar-panel {
+  transform: translateX(-100%);
 }
 
 .sidebar-header {
@@ -506,7 +737,52 @@ function speakKeyword(word: string) {
 .sidebar-item-lang {
   font-size: 10px;
   color: var(--text-muted);
+}
+
+.sidebar-item-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-top: 2px;
+}
+
+.sidebar-item-del {
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 4px;
+  color: var(--text-muted);
+  background: none; border: none; cursor: pointer;
+  opacity: 0;
+  transition: opacity .15s, background .15s;
+}
+.sidebar-item:hover .sidebar-item-del {
+  opacity: 1;
+}
+.sidebar-item-del:hover {
+  color: #ef4444;
+  background: rgba(239,68,68,.1);
+}
+
+.sidebar-footer {
+  padding: 8px 12px;
+  border-top: 0.5px solid var(--border);
+  flex-shrink: 0;
+}
+.sidebar-clear-btn {
+  width: 100%;
+  padding: 6px 0;
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: none;
+  border: 0.5px solid var(--border);
+  cursor: pointer;
+  transition: all .15s;
+}
+.sidebar-clear-btn:hover {
+  color: #ef4444;
+  border-color: rgba(239,68,68,.3);
+  background: rgba(239,68,68,.05);
 }
 
 .sidebar-empty {
@@ -654,7 +930,7 @@ function speakKeyword(word: string) {
 .error-dismiss:hover { background: rgba(224,36,94,.1); color: #e0245e; }
 
 /* ==============================
-   主页
+   主页 — 报纸排版（绝对定位引擎）
    ============================== */
 .home {
   flex: 1; display: flex; flex-direction: column; overflow: hidden;
@@ -662,7 +938,8 @@ function speakKeyword(word: string) {
 
 /* 刊头 */
 .masthead {
-  padding: 16px 16px 10px; flex-shrink: 0;
+  padding: 14px 16px 8px; flex-shrink: 0;
+  border-bottom: 2px solid var(--text-primary);
 }
 .masthead-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
 .masthead-badge {
@@ -670,73 +947,143 @@ function speakKeyword(word: string) {
   background: var(--accent); color: white;
   font-size: 11px; font-weight: 700; letter-spacing: .5px;
 }
-.masthead-issue { font-size: 12px; color: var(--text-muted); font-weight: 500; }
-.masthead-title { font-size: 22px; font-weight: 800; color: var(--text-primary); line-height: 1.2; margin-bottom: 4px; }
-.masthead-desc { font-size: 12px; color: var(--text-muted); }
+.masthead-issue { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+.masthead-title {
+  font-size: 26px; font-weight: 900; color: var(--text-primary);
+  line-height: 1.15; letter-spacing: -.5px; margin-bottom: 4px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+}
+.masthead-desc { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
 
 /* 分类栏 */
 .cat-strip {
-  display: flex; gap: 6px; padding: 0 16px 10px;
+  display: flex; gap: 6px; padding: 8px 16px;
   overflow-x: auto; flex-shrink: 0; scrollbar-width: none;
+  border-bottom: 0.5px solid var(--border);
 }
 .cat-strip::-webkit-scrollbar { display: none; }
 .cat-chip {
-  flex-shrink: 0; padding: 5px 12px; border-radius: 999px;
-  font-size: 12px; font-weight: 600; color: var(--text-secondary);
+  flex-shrink: 0; padding: 4px 12px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; color: var(--text-secondary);
   background: var(--bg-card); border: 0.5px solid var(--border); transition: all .2s;
+  text-transform: uppercase; letter-spacing: .3px;
 }
 .cat-chip:hover { background: var(--bg-hover); color: var(--text-primary); }
 .cat-chip.active { background: rgba(29,155,240,.12); border-color: var(--accent); color: var(--accent); }
 
-/* 卡片网格 — 瀑布流 */
-.card-grid {
+/* 报纸滚动容器 */
+.newspaper-scroll {
   flex: 1; overflow-y: auto;
-  padding: 0 16px 24px;
-  column-count: 2; column-gap: 12px;
+  padding: 0 16px 32px;
 }
 
-.card {
-  break-inside: avoid; margin-bottom: 12px;
-  background: var(--bg-card); border: 0.5px solid var(--border);
-  border-radius: 14px; overflow: hidden; cursor: pointer;
-  transition: border-color .2s, transform .15s;
-}
-.card:hover { border-color: var(--accent); transform: translateY(-2px); }
-
-.card-img {
-  position: relative; width: 100%; min-height: 100px;
-  background-size: cover; background-position: center; background-repeat: no-repeat;
+/* 报纸版面 — 绝对定位容器 */
+.newspaper-layout {
+  position: relative;
+  width: 100%;
 }
 
-.card-diff {
-  position: absolute; top: 8px; right: 8px;
-  padding: 2px 8px; border-radius: 6px;
-  font-size: 10px; font-weight: 700; backdrop-filter: blur(6px);
+/* ===== 所有卡片共用 ===== */
+.np-cell {
+  position: absolute;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow .2s, transform .15s;
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
 }
-.card-diff.beginner { background: rgba(0,200,83,.85); color: #000; }
-.card-diff.intermediate { background: rgba(245,166,35,.85); color: #000; }
-.card-diff.advanced { background: rgba(29,155,240,.85); color: #fff; }
-
-.card-body { padding: 10px 12px 12px; }
-
-.card-cat {
-  display: inline-block; padding: 1px 8px; border-radius: 4px;
-  font-size: 10px; font-weight: 700; margin-bottom: 4px;
+.np-cell:hover {
+  box-shadow: 0 2px 12px rgba(0,0,0,.1);
+  transform: translateY(-1px);
+  border-color: var(--accent);
 }
-.card-cat.时政, .card-cat.新闻, .card-cat.体育 { background: rgba(224,36,94,.15); color: #e0245e; }
-.card-cat.美食, .card-cat.文化, .card-cat.财经, .card-cat.商业, .card-cat.娱乐 { background: rgba(245,166,35,.15); color: #f5a623; }
-.card-cat.生活, .card-cat.健康 { background: rgba(0,200,83,.15); color: #00ba7c; }
-.card-cat.科技, .card-cat.创新, .card-cat.教育, .card-cat.学习 { background: rgba(29,155,240,.15); color: #1d9bf0; }
-.card-cat.旅游, .card-cat.地理 { background: rgba(121,75,196,.15); color: #794bc4; }
 
-.card-title {
-  font-size: 14px; font-weight: 600; color: var(--text-primary);
-  line-height: 1.3; margin-bottom: 4px; display: -webkit-box;
-  -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+/* ===== 头条 — 左图右文，WashPost 风格 ===== */
+.np-headline {
+  display: flex; padding: 0;
+  border-radius: 10px;
 }
-.card-summary {
-  font-size: 12px; color: var(--text-secondary); line-height: 1.5;
+.np-hl-img {
+  width: 55%; height: 100%;
+  background-size: cover; background-position: center;
+  position: relative; flex-shrink: 0;
+}
+.np-diff {
+  position: absolute; top: 10px; right: 10px;
+  padding: 3px 10px; border-radius: 4px;
+  font-size: 10px; font-weight: 700;
+}
+.np-diff.beginner { background: rgba(0,200,83,.9); color: #000; }
+.np-diff.intermediate { background: rgba(245,166,35,.9); color: #000; }
+.np-diff.advanced { background: rgba(29,155,240,.9); color: #fff; }
+.np-hl-body {
+  flex: 1; display: flex; flex-direction: column;
+  justify-content: center; padding: 16px 18px 16px 16px; gap: 10px; overflow: hidden;
+}
+.np-hl-title {
+  font-size: 20px; font-weight: 900; color: var(--text-primary);
+  line-height: 1.25; letter-spacing: -.3px;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.np-hl-summary {
+  font-size: 13px; color: var(--text-secondary); line-height: 1.5;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* ===== 版块标题 — WashPost 风格下划线 ===== */
+.np-section {
+  display: flex; align-items: center;
+  padding: 0;
+  border-bottom: 2px solid var(--text-primary);
+  border-radius: 0; cursor: default;
+  background: none; border-left: none; border-right: none; border-top: none; box-shadow: none;
+}
+.np-section:hover { box-shadow: none; transform: none; border-color: var(--text-primary); }
+.np-section-label {
+  font-size: 13px; font-weight: 800; color: var(--text-primary);
+  text-transform: uppercase; letter-spacing: 1px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+}
+
+/* ===== 文章卡片 ===== */
+.np-cell-article {
+  display: flex; flex-direction: column;
+}
+.np-cell-img {
+  width: 100%; height: 52%; min-height: 80px;
+  background-size: cover; background-position: center; flex-shrink: 0;
+}
+.np-cell-body {
+  flex: 1; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 4px; overflow: hidden;
+}
+.np-cat {
+  display: inline-block; width: fit-content;
+  padding: 1px 8px; border-radius: 4px;
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+}
+.np-cat.时政, .np-cat.新闻, .np-cat.体育 { background: rgba(224,36,94,.15); color: #e0245e; }
+.np-cat.美食, .np-cat.文化, .np-cat.财经, .np-cat.商业, .np-cat.娱乐 { background: rgba(245,166,35,.15); color: #f5a623; }
+.np-cat.生活, .np-cat.健康 { background: rgba(0,200,83,.15); color: #00ba7c; }
+.np-cat.科技, .np-cat.创新, .np-cat.教育, .np-cat.学习 { background: rgba(29,155,240,.15); color: #1d9bf0; }
+.np-cat.旅游, .np-cat.地理 { background: rgba(121,75,196,.15); color: #794bc4; }
+.np-cell-title {
+  font-size: 12px; font-weight: 700; color: var(--text-primary);
+  line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.np-cell-summary {
+  font-size: 10px; color: var(--text-secondary); line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* 带图文章标题更大 */
+.np-has-img .np-cell-title {
+  font-size: 14px; font-weight: 800;
+}
+.np-has-img .np-cell-summary {
+  font-size: 11px;
 }
 
 /* ==============================

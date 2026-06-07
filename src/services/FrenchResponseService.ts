@@ -26,7 +26,8 @@ export class FrenchResponseService {
   async generate(
     heardText: string,
     targetLang: string = 'fr-FR',
-    annotateLang: string = 'zh-CN'
+    annotateLang: string = 'zh-CN',
+    onUsage?: (prompt: number, completion: number) => void
   ): Promise<FrenchResponseItem[]> {
     const langInfo = this.langMap[targetLang] || this.langMap['fr-FR']
     const annotateInfo = this.langMap[annotateLang] || this.langMap['zh-CN']
@@ -66,6 +67,7 @@ Please give me 3 ${langInfo.nativeName} responses with ${annotateInfo.nativeName
       })
 
       const data = await response.json()
+      onUsage?.(data.usage?.prompt_tokens || 0, data.usage?.completion_tokens || 0)
       const content = data.choices?.[0]?.message?.content || '[]'
       const parsed = JSON.parse(content)
 

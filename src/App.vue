@@ -6,6 +6,8 @@ import ResponseCard from './components/ResponseCard.vue'
 import ChatView from './components/ChatView.vue'
 import SpeakingPractice from './components/SpeakingPractice.vue'
 import VocabularyTraining from './components/VocabularyTraining.vue'
+import IntensiveTraining from './components/IntensiveTraining.vue'
+import WritingTraining from './components/WritingTraining.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 import HistoryPanel from './components/HistoryPanel.vue'
 import ProgressPanel from './components/ProgressPanel.vue'
@@ -93,6 +95,16 @@ function getLangLabel(lang: string): string {
       <VocabularyTraining />
     </main>
 
+    <!-- 强化训练内容 -->
+    <main v-else-if="store.mode === 'intensive'" class="chat-container">
+      <IntensiveTraining />
+    </main>
+
+    <!-- 写作训练内容 -->
+    <main v-else-if="store.mode === 'writing'" class="chat-container">
+      <WritingTraining />
+    </main>
+
     <!-- 底部 Tab Bar -->
     <nav class="tab-bar">
       <button
@@ -141,6 +153,27 @@ function getLangLabel(lang: string): string {
           <line x1="16" y1="17" x2="8" y2="17"/>
         </svg>
         <span class="tab-label">词汇训练</span>
+      </button>
+      <button
+        class="tab-item"
+        :class="{ active: store.mode === 'intensive' }"
+        @click="store.setMode('intensive')"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="22" height="22" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <span class="tab-label">强化训练</span>
+      </button>
+      <button
+        class="tab-item"
+        :class="{ active: store.mode === 'writing' }"
+        @click="store.setMode('writing')"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="22" height="22" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+        <span class="tab-label">写作训练</span>
       </button>
     </nav>
 

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useAppStore } from '@/stores/appStore'
-import type { ConversationRecord, PracticeRecord, VocabJournalRecord } from '@/types'
+import type { ConversationRecord, PracticeRecord, VocabJournalRecord, WritingSession } from '@/types'
 
-type HistoryTab = 'speaking' | 'chat' | 'practice' | 'vocab'
+type HistoryTab = 'speaking' | 'chat' | 'practice' | 'vocab' | 'intensive' | 'writing'
 
 const store = useAppStore()
 const activeTab = ref<HistoryTab>(store.mode as HistoryTab)
@@ -67,22 +67,65 @@ function handleClearPractice() {
 }
 
 function handleLoadVocab(recordId: string) {
+  store.loadVocabJournal(recordId)
   store.setMode('vocab')
   store.toggleHistory()
 }
 
 function handleDeleteVocab(id: string) {
   if (confirm('确定删除这份期刊记录？')) {
-    // 从 records 中删除（当前没有独立的删除方法，用 filter 实现）
-    store.vocabRecords = store.vocabRecords.filter((r: VocabJournalRecord) => r.id !== id)
-    localStorage.setItem('doulingo_vocab_records', JSON.stringify(store.vocabRecords))
+    store.deleteVocabJournal(id)
   }
 }
 
 function handleClearVocab() {
   if (confirm('确定清空所有期刊记录？')) {
     store.vocabRecords = []
+    store.vocabJournals = []
     localStorage.removeItem('doulingo_vocab_records')
+    localStorage.removeItem('doulingo_vocab_journals')
+  }
+}
+
+function handleLoadTraining(id: string) {
+  store.loadTrainingSession(id)
+  store.setMode('intensive')
+  store.toggleHistory()
+}
+
+function handleDeleteTraining(id: string) {
+  if (confirm('确定删除这条训练记录？')) store.deleteTrainingSession(id)
+}
+
+function handleClearTraining() {
+  if (confirm('确定清空所有强化训练记录？')) {
+    store.trainingHistory = []
+    store.trainingSession = null
+    localStorage.removeItem('doulingo_intensive_session')
+    localStorage.removeItem('doulingo_intensive_history')
+  }
+}
+
+function getTrainingCorrectCount(progress: Record<string, string>): number {
+  return Object.values(progress).filter(v => v === 'correct').length
+}
+
+function handleLoadWriting(id: string) {
+  store.loadWritingSession(id)
+  store.setMode('writing')
+  store.toggleHistory()
+}
+
+function handleDeleteWriting(id: string) {
+  if (confirm('确定删除这条写作记录？')) store.deleteWritingSession(id)
+}
+
+function handleClearWriting() {
+  if (confirm('确定清空所有写作记录？')) {
+    store.writingHistory = []
+    store.writingSession = null
+    localStorage.removeItem('doulingo_writing_session')
+    localStorage.removeItem('doulingo_writing_history')
   }
 }
 
@@ -212,6 +255,27 @@ function dateGroupId(label: DateGroupLabel): string {
             <line x1="16" y1="17" x2="8" y2="17"/>
           </svg>
           词汇训练
+        </button>
+        <button
+          class="sub-tab"
+          :class="{ active: activeTab === 'intensive' }"
+          @click="activeTab = 'intensive'"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          强化训练
+        </button>
+        <button
+          class="sub-tab"
+          :class="{ active: activeTab === 'writing' }"
+          @click="activeTab = 'writing'"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+          写作训练
         </button>
       </div>
 
@@ -383,6 +447,96 @@ function dateGroupId(label: DateGroupLabel): string {
 
         <div v-if="store.vocabRecords.length > 0" class="modal-footer">
           <button class="clear-btn" @click="handleClearVocab">清空期刊记录</button>
+        </div>
+      </template>
+
+      <!-- ===== 强化训练记录 ===== -->
+      <template v-if="activeTab === 'intensive'">
+        <div v-if="store.trainingHistory.length === 0" class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" width="48" height="48" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <p class="empty-title">暂无强化训练记录</p>
+          <p class="empty-hint">在强化训练中生成考题后会自动保存</p>
+        </div>
+
+        <div v-else class="modal-body">
+          <template v-for="group in groupByDate(store.trainingHistory, s => s.createdAt)" :key="dateGroupId(group.label)">
+            <div class="date-group-header">{{ group.label }}</div>
+            <div
+              v-for="s in group.items"
+              :key="s.id"
+              class="record-item"
+            >
+              <div class="record-content" @click="handleLoadTraining(s.id)">
+                <div class="record-meta">
+                  <span class="record-time">{{ formatChatTime(s.createdAt) }}</span>
+                  <span class="record-count">{{ getTrainingCorrectCount(s.progress) }}/{{ s.questions.length }}</span>
+                </div>
+                <p class="record-title">{{ store.getLangLabel(s.targetLang) }} · 强化训练</p>
+                <div class="record-tags">
+                  <span class="sidebar-item-badge" :class="s.status === 'completed' ? 'badge-done' : 'badge-active'">
+                    {{ s.status === 'completed' ? '已完成' : '进行中' }}
+                  </span>
+                </div>
+              </div>
+              <button class="record-delete" @click="handleDeleteTraining(s.id)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                </svg>
+              </button>
+            </div>
+          </template>
+        </div>
+
+        <div v-if="store.trainingHistory.length > 0" class="modal-footer">
+          <button class="clear-btn" @click="handleClearTraining">清空训练记录</button>
+        </div>
+      </template>
+
+      <!-- ===== 写作训练记录 ===== -->
+      <template v-if="activeTab === 'writing'">
+        <div v-if="store.writingHistory.length === 0" class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" width="48" height="48" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+          <p class="empty-title">暂无写作训练记录</p>
+          <p class="empty-hint">在写作训练中提交评分后会自动保存</p>
+        </div>
+
+        <div v-else class="modal-body">
+          <template v-for="group in groupByDate(store.writingHistory, s => s.createdAt)" :key="dateGroupId(group.label)">
+            <div class="date-group-header">{{ group.label }}</div>
+            <div
+              v-for="s in group.items"
+              :key="s.id"
+              class="record-item"
+            >
+              <div class="record-content" @click="handleLoadWriting(s.id)">
+                <div class="record-meta">
+                  <span class="record-time">{{ formatChatTime(s.createdAt) }}</span>
+                  <span class="record-count" v-if="s.evaluation">{{ s.evaluation.score }}分</span>
+                  <span class="record-count" v-else>未评分</span>
+                </div>
+                <p class="record-title">{{ s.topic.title }}</p>
+                <div class="record-tags">
+                  <span class="sidebar-item-badge" :class="s.status === 'completed' ? 'badge-done' : 'badge-active'">
+                    {{ s.status === 'completed' ? '已评分' : '写作中' }}
+                  </span>
+                </div>
+              </div>
+              <button class="record-delete" @click="handleDeleteWriting(s.id)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                </svg>
+              </button>
+            </div>
+          </template>
+        </div>
+
+        <div v-if="store.writingHistory.length > 0" class="modal-footer">
+          <button class="clear-btn" @click="handleClearWriting">清空写作记录</button>
         </div>
       </template>
     </div>
@@ -615,6 +769,29 @@ function dateGroupId(label: DateGroupLabel): string {
   background: rgba(0, 149, 246, 0.1);
   color: var(--accent);
   font-size: 12px;
+}
+
+.record-tags {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.sidebar-item-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.badge-active {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent);
+}
+
+.badge-done {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
 }
 
 .record-delete {

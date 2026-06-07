@@ -13,6 +13,46 @@ interface ChangelogEntry {
   sections: { heading: string; items: string[] }[]
 }
 
+const FEATURE_LABELS: Record<string, string> = {
+  speaking: '口语提示',
+  chat: 'AI 对话',
+  chat_translate: '对话翻译',
+  chat_tips: '对话建议',
+  practice: '口语练习',
+  practice_tips: '练习建议',
+  vocab_journal: '词汇期刊',
+  vocab_assess: '能力评估',
+  vocab_translate: '查词翻译',
+  training_intensive: '强化训练',
+  writing_topics: '写作命题',
+  writing_hint: '写作提示',
+  writing_eval: '写作评分',
+}
+
+const featureEntries = computed(() => {
+  const features: Record<string, { promptTokens: number; completionTokens: number }> = (store.tokenUsage as any).byFeature || {}
+  return Object.entries(features)
+    .filter(([, v]) => v.promptTokens > 0 || v.completionTokens > 0)
+    .sort((a, b) => (b[1].promptTokens + b[1].completionTokens) - (a[1].promptTokens + a[1].completionTokens))
+    .map(([key, val]) => ({
+      key,
+      label: FEATURE_LABELS[key] || key,
+      promptTokens: val.promptTokens,
+      completionTokens: val.completionTokens,
+      totalTokens: val.promptTokens + val.completionTokens,
+      cost: (val.promptTokens / 1000000) * 1 + (val.completionTokens / 1000000) * 2,
+    }))
+})
+
+function resetTokenUsage() {
+  store.tokenUsage.promptTokens = 0
+  store.tokenUsage.completionTokens = 0
+  store.tokenUsage.totalTokens = 0
+  store.tokenUsage.totalCost = 0
+  ;(store.tokenUsage as any).byFeature = {}
+  localStorage.removeItem('doulingo_token_usage')
+}
+
 const parsedChangelog = computed<ChangelogEntry[]>(() => {
   const lines = changelog.split('\n')
   const entries: ChangelogEntry[] = []
@@ -287,7 +327,7 @@ function onProficiencyChange(lang: string) {
               <span class="journal-label">篇数</span>
               <div class="chip-group">
                 <button
-                  v-for="opt in ['5-6', '8-9', '12-15', '15-20']"
+                  v-for="opt in ['5-6', '8-9', '12-15', '15-20', '20-30']"
                   :key="opt"
                   class="chip"
                   :class="{ active: store.vocabArticleRange === opt }"
@@ -326,6 +366,29 @@ function onProficiencyChange(lang: string) {
               </ol>
               <p class="sop-tip">💡 DeepSeek 提供充足免费额度，足以满足日常口语练习和期刊生成</p>
             </details>
+            <!-- 余额 -->
+            <div class="balance-row">
+              <template v-if="store.balance.infos.length > 0">
+                <span class="balance-label">账户余额</span>
+                <span
+                  v-for="b in store.balance.infos"
+                  :key="b.currency"
+                  class="balance-value"
+                  :class="{ available: store.balance.available, empty: !store.balance.available }"
+                >
+                  {{ b.currency === 'CNY' ? '¥' : '$' }}{{ parseFloat(b.totalBalance).toFixed(2) }}
+                  <span class="balance-detail">
+                    (赠送 {{ b.currency === 'CNY' ? '¥' : '$' }}{{ parseFloat(b.grantedBalance).toFixed(2) }}
+                    + 充值 {{ b.currency === 'CNY' ? '¥' : '$' }}{{ parseFloat(b.toppedUpBalance).toFixed(2) }})
+                  </span>
+                </span>
+                <button class="balance-refresh-btn" :disabled="store.balanceLoading" @click="store.fetchBalance()">{{ store.balanceLoading ? '...' : '↻' }}</button>
+              </template>
+              <template v-else-if="store.hasApiKey && !store.balanceLoading">
+                <span class="balance-label">账户余额</span>
+                <button class="balance-query-btn" @click="store.fetchBalance()">点击查询</button>
+              </template>
+            </div>
           </div>
 
           <!-- 讯飞 -->
@@ -351,6 +414,42 @@ function onProficiencyChange(lang: string) {
               </ol>
               <p class="sop-tip">💡 讯飞语音识别每月有免费额度，首次注册即可使用</p>
             </details>
+          </div>
+
+          <!-- API 用量 -->
+          <div class="section-card usage-card">
+            <div class="api-header">
+              <span class="api-name">DeepSeek API 用量</span>
+              <button class="usage-reset-btn" @click="resetTokenUsage()">重置</button>
+            </div>
+            <!-- 分入口用量 -->
+            <div class="usage-features">
+              <div class="usage-feature" v-for="f in featureEntries" :key="f.key">
+                <div class="usage-f-header">
+                  <span class="usage-f-label">{{ f.label }}</span>
+                  <span class="usage-f-total">{{ f.totalTokens.toLocaleString() }} tokens</span>
+                </div>
+                <div class="usage-f-row">
+                  <span class="usage-f-detail">输入 {{ f.promptTokens.toLocaleString() }}</span>
+                  <span class="usage-f-dot">·</span>
+                  <span class="usage-f-detail">输出 {{ f.completionTokens.toLocaleString() }}</span>
+                  <span class="usage-f-dot">·</span>
+                  <span class="usage-f-cost">¥{{ f.cost.toFixed(4) }}</span>
+                </div>
+              </div>
+              <div v-if="featureEntries.length === 0" class="usage-empty">暂无用量数据</div>
+            </div>
+            <!-- 汇总 -->
+            <div class="usage-summary">
+              <div class="usage-summary-item">
+                <span class="usage-label">总 tokens</span>
+                <span class="usage-value total">{{ store.tokenUsage.totalTokens.toLocaleString() }}</span>
+              </div>
+              <div class="usage-summary-item">
+                <span class="usage-label">预估费用</span>
+                <span class="usage-value cost">¥{{ store.tokenUsage.totalCost.toFixed(4) }}</span>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -420,24 +519,24 @@ function onProficiencyChange(lang: string) {
           <div class="section-card">
             <button class="about-btn" @click="showAbout = !showAbout">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              编者的话
+              编者按
               <svg :class="{ rotated: showAbout }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <!-- About 弹出框 -->
             <Transition name="slide">
               <div v-if="showAbout" class="about-modal">
                 <div class="about-content">
-                  <p>说起来有些好笑，这个应用的诞生，源头不过是 Duolingo Max 那高昂的订阅价格。每个月近两百元的费用，对于一个只想安静学一门语言的人来说，多少有些奢侈。某个深夜，我盯着那个付款界面看了很久，突然冒出一个念头——为什么不自己做一个呢？</p>
-                  <p>那时的我，对"Vibe Coding"这个词还只是一个模糊的印象。所谓 Vibe Coding，大抵是指那种顺着感觉走的编程方式——不需要完整的架构设计，不需要详尽的需求文档，只是跟着灵感的方向，一行一行地写下去。听起来有些疯狂，但在这个 AI 时代，很多疯狂的事情正在变得稀松平常。</p>
-                  <p>于是我真的开始了。打开编辑器，接入 DeepSeek 的 API，开始了这场漫无边际的尝试。最初的想法很简单：一个能说外语、能听懂我回应的对话工具。就像一个不会疲倦的语言陪练，随时在线，随时愿意和你聊上几句。从麦克风权限的获取，到语音识别的调试，再到文字翻译的呈现——每一个环节都像在黑暗中摸索，但每迈出一步，眼前就亮起一盏灯。</p>
-                  <p>让我惊讶的是，灵感这种东西，一旦开始就不会停下。就在基础对话功能勉强跑通的那个下午，我看着屏幕上歪歪扭扭的法语句子，突然想——如果它能朗读出来该多好？于是有了 TTS。如果它能纠正我的发音呢？于是有了口语评测。如果它能把聊过的内容整理成期刊呢？于是有了词汇训练。如果它能记录我的学习轨迹，让我看到每一天的进步呢？于是便有了学习进度追踪。一个功能牵引出下一个功能，像溪流汇成小河，小河又奔向江海。</p>
-                  <p>不知不觉间，当初那个简陋的对话框已经长成了一个五脏俱全的外语学习平台。回头翻看提交记录，我粗略统计了一下——调用 DeepSeek 接口消耗的 token 总数，大约在两亿左右。两亿 token 是什么概念？如果翻译成文字，大约是几百万个汉字，相当于几部长篇小说的体量。而这些计算量，在云端不过是一瞬间的事。更让我感慨的是，这庞大的两亿 token，总共花费不到十元钱。十元钱，甚至买不了一杯像样的咖啡，却支撑起了一个完整应用从零到一的所有智能对话。</p>
-                  <p>这不得不让人思考一些更本质的问题。当 AI 可以让一个普通人在一天之内、以极低的成本完成过去需要一个团队数周才能实现的工作时，程序员的價值究竟在哪里？</p>
-                  <p>我想了很久，答案渐渐清晰。代码本身正在变得廉价——当你可以让 AI 替你写出大部分代码的时候，敲击键盘的动作已经不再稀缺。真正稀缺的，是那双能看见需求的眼睛，那个能构想出产品形态的大脑。程序员的护城河，从来不是某门语言、某个框架的熟练度，而是对业务的理解深度，是对用户体验的细腻感知，是对"做什么"和"为什么做"的判断力。简单来说，在未来，一个优秀的程序员首先应该是一个优秀的产品经理。</p>
-                  <p>这也是为什么我一直在强调"宏观把控能力"的重要性。技术栈的更迭越来越快，今天的热门框架明天可能就无人问津。但如果你的视野足够开阔，能够理解整个系统的运作逻辑，能够判断什么样的技术方案最适合当前的问题，能够在茫茫多的可能性中找到那条最优路径——那么无论技术如何变迁，你都始终站在浪潮之上。Vibe Coding 的本质并不是随意和散漫，而是将那些重复的、机械的编码工作交给 AI，让自己解放出来，去思考真正值得思考的事情。</p>
-                  <p>话说回来，这个应用目前还很粗糙。界面不够精美，功能还有漏洞，体验也远未达到流畅的程度。但它是我用两天不到的时间、两亿 token、十元钱和一整夜的咖啡因拼凑出来的作品。它有温度，有脾气，有我这个创造者赋予它的独特气质。每一次划词翻译弹出的瞬间，每一段 TTS 朗读的声音，每一篇 AI 生成的期刊文章——都是我深夜坐在电脑前，与代码和灵感较量的痕迹。</p>
-                  <p>如果你正在读这段话，也许你也在学一门语言，也许你也在寻找一个趁手的工具。那么我想对你说：语言的魅力在于它打开了一扇通往另一个世界的门。而技术的魅力在于，它让我们有能力亲手去打造那把钥匙。这个应用是我用我那把钥匙打开的一扇门。现在，我把这把钥匙也交给你。</p>
-                  <p class="about-signature">—— dongjiayun<br/>于一个同样安静的深夜</p>
+                  <p>这个应用的起点，可以追溯到一次价格锚点的心理实验。Duolingo Max 的订阅费用——每月近两百元人民币——构成了一个足够尖锐的对比：当工具的使用成本超过了问题本身的权重，自制便成了一种理性的选择。某个深夜，我盯着付款界面的确认按钮，问了自己一个问题：如果我能用 API 调用替代订阅费，为什么还要付费？</p>
+                  <p>当然，理由比一句反问要复杂得多。Vibe Coding 的流行暗示了一个更深刻的技术转向：编程正在从工程学科向表达媒介迁移。所谓 Vibe Coding，本质上是将认知负荷从"如何实现"转移到"想要什么"——这不只是一个开发范式的变化，而是软件生产关系的重构。当 GPT-4 的参数规模超过万亿级别，当推理成本以每年 10 倍的速度下降，一个开发者用自然语言描述需求、让模型生成骨架代码、再以结构化反馈迭代修正的流程，正在成为现实。</p>
+                  <p>我打开编辑器，申请了 DeepSeek 的 API Key，写下了第一行调用代码。从这个意义上说，这个项目从一开始就不是一个传统意义上的软件开发过程——它更像是一场持续对话，我与模型各执一端，互相试探、校正、迭代。我需要一个能说目标语言、能听懂我回应的对话工具，就像一个语言陪练，随时在线。从麦克风权限处理到流式语音识别，从 TTS 线程管理到翻译管道——每一个模块的实现都遵循着同一套方法：定义接口边界，让 AI 填充实现，人工审查逻辑完整性。</p>
+                  <p>让我略感意外的是，功能会自己生长。基础对话跑通之后的那个下午，我看着调试窗口里输出的法语 JSON，想——如果它能朗读出来呢？于是有了 TTS。如果能纠正发音呢？于是接入了语音评测 API。如果把对话历史整理成结构化期刊呢？于是一套基于提示工程的上下文摘要管道被搭建了起来。如果记录学习轨迹，量化每天的进展呢？于是有了事件溯源式的学习进度追踪。功能像迭代中的梯度下降一样收敛——从粗糙原型到可用产品，每一轮循环都在收缩与目标之间的差距。</p>
+                  <p>迭代至今，这个应用已经覆盖了口语提示、AI 对话、语音评测、词汇训练、强化训练和写作训练等多个模块。回头统计了一下——调用 DeepSeek 接口消耗的 token 总数，大约在两亿左右。这个数字如果折算成文字，大约是几百万汉字，相当于几部中等篇幅的著作。而这些计算量消耗的算力成本，总共不到十元人民币。这是一个值得记录的效率数字：它构成了"AI 辅助个体创作"这一命题的一个实证样本。</p>
+                  <p>但技术指标只是表象。真正值得追问的是另一个问题：当一个人能够借助 AI 在数天内完成过去需要团队数周才能交付的产品，程序员的不可替代性究竟在哪里？</p>
+                  <p>答案或许在于：代码正在从稀缺品变为商品，而需求洞察、架构判断和体验感知正在成为新的稀缺品。框架的熟练度有其保质期，语言的偏好有其边际递减——但理解用户真实需求的能力、在不确定中做决策的勇气、以及对系统复杂性的敬畏，这些东西不会过时。程序员的护城河，从来不在键盘上，而在对"做什么"和"为什么"的判断力上。在未来，一个优秀的开发者首先应该是一个优秀的产品思考者。</p>
+                  <p>这也是为什么我一直强调宏观把控能力的价值。技术栈的更迭周期已经从十年缩短到一两年，今天的主流框架明天可能就进入维护模式。但如果你的思维结构足够抽象，能够辨识系统之间的模式共性，能够在高维空间中评估技术路线的取舍——那么无论底层工具如何迭代，你始终站在设计的上游。Vibe Coding 的本质并不是无序或放任，而是将机械的编码环节委托给模型，让人回到它本来的位置：做决策，而不是做转换。</p>
+                  <p>当然，这个应用还有很多不完善的地方——界面细节需要打磨，部分流程存在边界情况，体验尚未达到理想中的流畅度。但它是一个独立开发者用不到两天的主体开发时间、两亿 token 的推理量、不到十元的计算成本和若干个深夜的咖啡因攒出来的一个完整系统。它有它的问题，也有它的性格。每次划词翻译的弹出时机、每段 TTS 的语速参数、每篇期刊的文章结构——这些细节里藏着一个创造者对"何谓好的体验"的持续追问。</p>
+                  <p>如果你在读这段话，你大概也在学一门语言，或者正在寻找趁手的工具。那么我想说的是：语言学习本质上是一种认知重构——它在你的思维系统中开辟新的映射路径。而软件工具的迷人之处在于，它让我们有能力亲手构建这些路径的载体。这个应用是我用自己的方法搭建的一条小径。如果你觉得它有用，那是它存在的最大意义。</p>
+                  <p class="about-signature">—— dongjiayun<br/>于一个安静的深夜</p>
                 </div>
               </div>
             </Transition>
@@ -786,6 +885,167 @@ function onProficiencyChange(lang: string) {
   background: transparent;
   border: 0.5px solid var(--border);
   color: var(--text-secondary);
+}
+
+/* ===== API 用量 ===== */
+.usage-card { margin-top: 0 !important; }
+.usage-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+.usage-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--bg-card);
+}
+.usage-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.usage-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.usage-value.total { color: var(--accent); }
+.usage-value.cost { color: #f59e0b; }
+.usage-reset-btn {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.usage-reset-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.usage-reset-btn:disabled {
+  opacity: .5;
+  cursor: default;
+}
+.usage-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* 分入口用量 */
+.usage-features {
+  margin-top: 10px;
+  border-top: 0.5px solid var(--border);
+  padding-top: 8px;
+}
+.usage-feature {
+  padding: 6px 0;
+  border-bottom: 0.5px solid var(--border-subtle);
+}
+.usage-feature:last-child { border-bottom: none; }
+.usage-f-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.usage-f-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.usage-f-total {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.usage-f-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: 11px;
+}
+.usage-f-detail { color: var(--text-muted); }
+.usage-f-dot { color: var(--text-muted); opacity: .3; }
+.usage-f-cost { color: #f59e0b; font-weight: 600; }
+.usage-empty { font-size: 12px; color: var(--text-muted); text-align: center; padding: 12px 0; }
+.usage-summary {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 0.5px solid var(--border);
+}
+.usage-summary-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--bg-card);
+}
+/* ===== 余额 ===== */
+.balance-row {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 0.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.balance-label {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.balance-value {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.balance-value.available { color: var(--success); }
+.balance-value.empty { color: #ef4444; }
+.balance-detail {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.balance-query-btn {
+  font-size: 12px;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.balance-query-btn:hover {
+  background: rgba(29,155,240,.1);
+}
+.balance-refresh-btn {
+  font-size: 14px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.balance-refresh-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.balance-refresh-btn:disabled {
+  opacity: .5;
+  cursor: default;
 }
 
 .api-btn.ghost:hover {

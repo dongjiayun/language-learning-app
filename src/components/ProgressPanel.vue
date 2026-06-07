@@ -56,6 +56,8 @@ function eventTypeLabel(type: LearningEvent['type']) {
     vocab_article: '📖 期刊文章',
     vocab_word_lookup: '🔍 查词',
     speaking_session: '🗣️ 口语提示',
+    training_intensive: '⚡ 强化训练',
+    writing_training: '✍ 写作训练',
   }
   return map[type] || type
 }
@@ -73,7 +75,7 @@ function weekChartData(progress: LanguageProgress) {
     const dateStr = d.toISOString().slice(0, 10)
     const dayStats = progress.dailyStats.find(s => s.date === dateStr)
     const total = dayStats
-      ? dayStats.chatMessages + dayStats.practiceMessages + dayStats.speakingSessions + dayStats.vocabArticles
+      ? dayStats.chatMessages + dayStats.practiceMessages + dayStats.speakingSessions + dayStats.vocabArticles + dayStats.intensiveTrainings + dayStats.writingTrainings
       : 0
     if (total > maxCount) maxCount = total
     days.push({
@@ -182,6 +184,14 @@ function weekChartData(progress: LanguageProgress) {
             <div class="stat-card">
               <div class="stat-num">{{ activeProgress.totalVocabLookups }}</div>
               <div class="stat-label">查词次数</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-num">{{ activeProgress.totalIntensiveTrainings || 0 }}</div>
+              <div class="stat-label">强化训练</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-num">{{ activeProgress.totalWritingTrainings || 0 }}</div>
+              <div class="stat-label">写作训练</div>
             </div>
           </div>
 

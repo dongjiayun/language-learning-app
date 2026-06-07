@@ -15,7 +15,7 @@ export interface ConversationRecord {
 
 export type AppState = 'idle' | 'recording' | 'processing'
 
-export type AppMode = 'speaking' | 'chat' | 'practice' | 'vocab'
+export type AppMode = 'speaking' | 'chat' | 'practice' | 'vocab' | 'intensive' | 'writing'
 
 export interface PracticeMessage {
   id: string
@@ -193,7 +193,7 @@ export const ANNOTATION_LANGUAGES: LanguageOption[] = [
 // ===== 学习进度追踪 =====
 export interface LearningEvent {
   id: string
-  type: 'chat_message' | 'practice_message' | 'practice_session' | 'vocab_article' | 'vocab_word_lookup' | 'speaking_session'
+  type: 'chat_message' | 'practice_message' | 'practice_session' | 'vocab_article' | 'vocab_word_lookup' | 'speaking_session' | 'training_intensive' | 'writing_training'
   lang: string
   timestamp: number
   detail: string // 简短描述
@@ -208,6 +208,8 @@ export interface DailyStats {
   vocabArticles: number
   vocabLookups: number
   speakingSessions: number
+  intensiveTrainings: number
+  writingTrainings: number
   totalMinutes: number
 }
 
@@ -217,6 +219,8 @@ export interface LanguageProgress {
   totalMessages: number
   totalVocabArticles: number
   totalVocabLookups: number
+  totalIntensiveTrainings: number
+  totalWritingTrainings: number
   totalPracticeMinutes: number
   level: VocabProficiencyLevel
   lastActiveDate: string
@@ -226,6 +230,79 @@ export interface LanguageProgress {
 
 export const STORAGE_KEY_LEARNING_EVENTS = 'doulingo_learning_events'
 export const STORAGE_KEY_LANG_PROGRESS = 'doulingo_lang_progress'
+
+// ===== 强化训练 =====
+export interface TrainingQuestion {
+  id: string
+  originalSentence: string  // 完整句子（目标语种）
+  blankedSentence: string   // 抽掉部分单词的句子（用 ___ 表示空位）
+  blanks: string[]          // 正确答案数组（每个空位的答案）
+  translation: string       // 中文翻译
+  difficulty: 'beginner' | 'intermediate' | 'advanced'
+}
+
+export interface TrainingSession {
+  id: string
+  questions: TrainingQuestion[]
+  createdAt: number
+  targetLang: string
+  userLevel: string
+  status: 'active' | 'completed'
+  // questionId -> 答题状态
+  progress: Record<string, 'correct' | 'wrong' | 'pending'>
+  // 用户填写的答案: questionId -> string[] （用户填的每个空）
+  userAnswers: Record<string, string[]>
+  currentIndex: number      // 当前进行到的题目索引
+}
+
+export const STORAGE_KEY_TRAINING_SESSION = 'doulingo_intensive_session'
+export const STORAGE_KEY_TRAINING_HISTORY = 'doulingo_intensive_history'
+
+// ===== 写作训练 =====
+export interface WritingTopic {
+  id: string
+  title: string              // 目标语种的命题
+  description: string        // 写作要求描述（目标语种）
+  translation: string        // 中文翻译
+  tips: string[]             // 写作提示/要点
+}
+
+export interface WritingEvaluation {
+  score: number              // 总分 0-100
+  comment: string            // 总评
+  strengths: string[]        // 优点
+  weaknesses: string[]       // 待改进
+  corrections: WritingCorrection[]  // 批改/错误标记
+}
+
+export interface WritingCorrection {
+  original: string           // 原文片段
+  corrected: string          // 修改建议
+  type: 'grammar' | 'spelling' | 'expression' | 'word_choice'
+  explanation: string        // 修改说明
+}
+
+export interface WritingHint {
+  continuation: string       // 接续话建议（目标语种）
+  continuationTranslation: string  // 接续话建议翻译
+  options: string[]          // 3个不同的发展方向
+  optionsTranslation: string[]     // 3个方向的翻译
+}
+
+export interface WritingSession {
+  id: string
+  topic: WritingTopic
+  content: string            // 用户的完整写作内容
+  hints: WritingHint[]       // 历史提示记录
+  evaluation: WritingEvaluation | null
+  createdAt: number
+  targetLang: string
+  userLevel: string
+  status: 'writing' | 'completed'
+}
+
+export const STORAGE_KEY_WRITING_SESSION = 'doulingo_writing_session'
+export const STORAGE_KEY_WRITING_HISTORY = 'doulingo_writing_history'
 
 // 全局声明 window.electronAPI
 declare global {

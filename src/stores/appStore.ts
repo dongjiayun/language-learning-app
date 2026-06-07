@@ -1,7 +1,7 @@
 import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
-import type { AppState, AppMode, FrenchResponseItem, ConversationRecord, ChatMessage, ChatSession, PracticeMessage, PracticeRecord, VocabJournal, VocabJournalRecord, LanguageProficiency, VocabProficiencyLevel, LearningEvent, LanguageProgress, DailyStats, VocabEntry } from '@/types'
-import { STORAGE_KEY_LEARNING_EVENTS } from '@/types'
+import type { AppState, AppMode, FrenchResponseItem, ConversationRecord, ChatMessage, ChatSession, PracticeMessage, PracticeRecord, VocabJournal, VocabJournalRecord, LanguageProficiency, VocabProficiencyLevel, LearningEvent, LanguageProgress, DailyStats, VocabEntry, TrainingSession, TrainingQuestion, WritingTopic, WritingSession, WritingHint, WritingEvaluation } from '@/types'
+import { STORAGE_KEY_LEARNING_EVENTS, STORAGE_KEY_TRAINING_SESSION, STORAGE_KEY_TRAINING_HISTORY, STORAGE_KEY_WRITING_SESSION, STORAGE_KEY_WRITING_HISTORY } from '@/types'
 import { FrenchResponseService } from '@/services/FrenchResponseService'
 import { ChatService } from '@/services/ChatService'
 import { VocabTrainingService } from '@/services/VocabTrainingService'
@@ -24,6 +24,16 @@ const STORAGE_KEY_VOCAB_WORD_COUNT = 'doulingo_vocab_word_count'
 const STORAGE_KEY_VOCAB_ARTICLE_RANGE = 'doulingo_vocab_article_range'
 const STORAGE_KEY_VOCAB_JOURNALS = 'doulingo_vocab_journals'
 const STORAGE_KEY_VOCAB_BOOK = 'doulingo_vocab_book'
+const STORAGE_KEY_TOKEN_USAGE = 'doulingo_token_usage'
+
+// DeepSeek 计费（参考：https://api-docs.deepseek.com/zh-cn/quick_start/pricing/）
+// deepseek-v4-flash（deepseek-chat 映射至此）：
+//   - 输入（缓存未命中）：¥1/百万 tokens
+//   - 输入（缓存命中）：¥0.02/百万 tokens
+//   - 输出：¥2/百万 tokens
+// 这里按缓存未命中（最坏情况）估算
+const DEEPSEEK_PRICE_INPUT = 1       // ¥1/百万 input tokens
+const DEEPSEEK_PRICE_OUTPUT = 2      // ¥2/百万 output tokens
 
 export const useAppStore = defineStore('app', () => {
   const state = ref<AppState>('idle')
@@ -111,7 +121,7 @@ export const useAppStore = defineStore('app', () => {
     JSON.parse(localStorage.getItem(STORAGE_KEY_LANG_PROFICIENCY) || '{}')
   )
   const vocabWordCount = ref(Number(localStorage.getItem(STORAGE_KEY_VOCAB_WORD_COUNT)) || 400)
-  const vocabArticleRange = ref(localStorage.getItem(STORAGE_KEY_VOCAB_ARTICLE_RANGE) || '8-9')
+  const vocabArticleRange = ref(localStorage.getItem(STORAGE_KEY_VOCAB_ARTICLE_RANGE) || '20-30')
   const vocabJournal = ref<VocabJournal | null>(null)
   const vocabLoading = ref(false)
   const vocabGeneratingProgress = ref(0) // 0-100
@@ -123,10 +133,362 @@ export const useAppStore = defineStore('app', () => {
   const vocabSelectedText = ref('')
   const vocabSelectedTranslation = ref('')
   const vocabTranslating = ref(false)
-  const vocabJournals = ref<VocabJournal[]>(
-    JSON.parse(localStorage.getItem(STORAGE_KEY_VOCAB_JOURNALS) || '[]')
-  )
+  const vocabJournals = ref<VocabJournal[]>([])
   let vocabService: VocabTrainingService | null = null
+
+  // ===== 强化训练 =====
+  const trainingSession = ref<TrainingSession | null>(null)
+  const trainingHistory = ref<TrainingSession[]>([])
+  const trainingGenerating = ref(false)
+  const trainingGenerateError = ref('')
+  const trainingGenerateProgress = ref(0)
+  const trainingGenerateStatus = ref('')
+
+  // ===== 写作训练 =====
+  const writingTopics = ref<WritingTopic[]>([])
+  const writingSession = ref<WritingSession | null>(null)
+  const writingHistory = ref<WritingSession[]>([])
+  const writingGenerating = ref(false)
+  const writingLoadingHint = ref(false)
+  const writingEvaluating = ref(false)
+  const writingError = ref('')
+
+  // 初始化时从 localStorage 恢复
+  const savedSession = localStorage.getItem(STORAGE_KEY_TRAINING_SESSION)
+  if (savedSession) {
+    try { trainingSession.value = JSON.parse(savedSession) } catch {}
+  }
+  const savedHistory = localStorage.getItem(STORAGE_KEY_TRAINING_HISTORY)
+  if (savedHistory) {
+    try { trainingHistory.value = JSON.parse(savedHistory) } catch {}
+  }
+
+  async function generateTrainingQuestions() {
+    const key = getApiKey()
+    if (!key) {
+      showApiGuide.value = 'deepseek'
+      return
+    }
+
+    if (!vocabService) {
+      vocabService = new VocabTrainingService()
+    }
+    vocabService.setApiKey(key)
+
+    const targetLangCode = targetLang.value
+    const userSetLevel = languageProficiencies.value[targetLangCode]
+    const levelDesc = userSetLevel
+      ? `用户自评水平：${getProficiencyLabel(userSetLevel)}`
+      : vocabUserLevel.value
+
+    try {
+      trainingGenerating.value = true
+      trainingGenerateProgress.value = 0
+      trainingGenerateStatus.value = '正在生成强化训练题目...'
+      trainingGenerateError.value = ''
+      const questions = await vocabService.generateTrainingQuestions(
+        targetLang.value,
+        annotateLang.value,
+        levelDesc,
+        30,
+        (chars: number, total: number) => {
+          const pct = Math.min(Math.round((chars / total) * 100), 99)
+          trainingGenerateProgress.value = pct
+          trainingGenerateStatus.value = `正在生成... ${chars < 1000 ? chars + '字' : (chars / 1000).toFixed(1) + 'K字'}`
+        },
+        (p, c) => recordTokenUsage(p, c, 'training_intensive')
+      )
+
+      trainingGenerateProgress.value = 100
+      trainingGenerateStatus.value = '生成完成'
+
+      recordLearningEvent('training_intensive', targetLang.value, `生成 30 道强化训练题目`)
+
+      const session: TrainingSession = {
+        id: `train-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        questions,
+        createdAt: Date.now(),
+        targetLang: targetLang.value,
+        userLevel: levelDesc,
+        status: 'active',
+        progress: Object.fromEntries(questions.map(q => [q.id, 'pending'])),
+        userAnswers: {},
+        currentIndex: 0,
+      }
+
+      trainingSession.value = session
+      localStorage.setItem(STORAGE_KEY_TRAINING_SESSION, JSON.stringify(session))
+    } catch (e: any) {
+      console.error('[Store] 生成强化训练失败:', e)
+      trainingGenerateError.value = e?.message || '生成失败，请重试'
+    } finally {
+      trainingGenerating.value = false
+    }
+  }
+
+  function submitTrainingAnswer(questionId: string, answers: string[]) {
+    if (!trainingSession.value) return
+    const session = JSON.parse(JSON.stringify(trainingSession.value))
+    session.userAnswers[questionId] = answers
+
+    // 校验答案
+    const question = session.questions.find((q: any) => q.id === questionId)
+    if (!question) return
+
+    const isCorrect = answers.every((a: string, i: number) => {
+      const expected = question.blanks[i] || ''
+      return a.trim().toLowerCase() === expected.trim().toLowerCase()
+    })
+    session.progress[questionId] = isCorrect ? 'correct' : 'wrong'
+
+    // 如果是正确的，前进到下一题
+    if (isCorrect) {
+      let nextIdx = session.questions.findIndex((q: any) => q.id === questionId) + 1
+      while (nextIdx < session.questions.length) {
+        if (session.progress[session.questions[nextIdx].id] === 'pending') break
+        nextIdx++
+      }
+      if (nextIdx < session.questions.length) {
+        session.currentIndex = nextIdx
+      }
+    }
+
+    // 检查是否全部完成
+    const allDone = session.questions.every((q: any) => session.progress[q.id] !== 'pending')
+    if (allDone) {
+      session.status = 'completed'
+    }
+
+    // 更新 trainingSession
+    trainingSession.value = session
+    localStorage.setItem(STORAGE_KEY_TRAINING_SESSION, JSON.stringify(session))
+
+    // 保存/更新历史记录（每次提交都同步）
+    const existingIdx = trainingHistory.value.findIndex(h => h.id === session.id)
+    if (existingIdx >= 0) {
+      trainingHistory.value[existingIdx] = session
+    } else {
+      trainingHistory.value.unshift(session)
+    }
+    if (trainingHistory.value.length > 50) {
+      trainingHistory.value = trainingHistory.value.slice(0, 50)
+    }
+    localStorage.setItem(STORAGE_KEY_TRAINING_HISTORY, JSON.stringify(trainingHistory.value))
+  }
+
+  function goToTrainingQuestion(index: number) {
+    if (!trainingSession.value) return
+    trainingSession.value = JSON.parse(JSON.stringify({ ...trainingSession.value, currentIndex: index }))
+    localStorage.setItem(STORAGE_KEY_TRAINING_SESSION, JSON.stringify(trainingSession.value))
+  }
+
+  function loadTrainingSession(id: string) {
+    const found = trainingHistory.value.find(s => s.id === id)
+    if (found) {
+      trainingSession.value = found
+      localStorage.setItem(STORAGE_KEY_TRAINING_SESSION, JSON.stringify(found))
+    }
+  }
+
+  function deleteTrainingSession(id: string) {
+    trainingHistory.value = trainingHistory.value.filter(s => s.id !== id)
+    localStorage.setItem(STORAGE_KEY_TRAINING_HISTORY, JSON.stringify(trainingHistory.value))
+    if (trainingSession.value?.id === id) {
+      trainingSession.value = null
+      localStorage.removeItem(STORAGE_KEY_TRAINING_SESSION)
+    }
+  }
+
+  function clearTrainingSession() {
+    trainingSession.value = null
+    localStorage.removeItem(STORAGE_KEY_TRAINING_SESSION)
+  }
+
+  // ===== 写作训练 =====
+  // 从 localStorage 恢复
+  const savedWritingTopics = localStorage.getItem('doulingo_writing_topics')
+  if (savedWritingTopics) {
+    try { writingTopics.value = JSON.parse(savedWritingTopics) } catch {}
+  }
+  const savedWritingSession = localStorage.getItem(STORAGE_KEY_WRITING_SESSION)
+  if (savedWritingSession) {
+    try { writingSession.value = JSON.parse(savedWritingSession) } catch {}
+  }
+  const savedWritingHistory = localStorage.getItem(STORAGE_KEY_WRITING_HISTORY)
+  if (savedWritingHistory) {
+    try { writingHistory.value = JSON.parse(savedWritingHistory) } catch {}
+  }
+
+  async function generateWritingTopics() {
+    const key = getApiKey()
+    if (!key) {
+      showApiGuide.value = 'deepseek'
+      return
+    }
+
+    if (!vocabService) {
+      vocabService = new VocabTrainingService()
+    }
+    vocabService.setApiKey(key)
+
+    const levelDesc = languageProficiencies.value[targetLang.value]
+      ? `用户自评水平：${getProficiencyLabel(languageProficiencies.value[targetLang.value])}`
+      : vocabUserLevel.value
+
+    try {
+      writingGenerating.value = true
+      writingError.value = ''
+      const topics = await vocabService.generateWritingTopics(
+        targetLang.value,
+        annotateLang.value,
+        levelDesc,
+        (p, c) => recordTokenUsage(p, c, 'writing_topics')
+      )
+      writingTopics.value = topics
+      localStorage.setItem('doulingo_writing_topics', JSON.stringify(topics))
+      recordLearningEvent('writing_training', targetLang.value, `生成 3 个写作命题`)
+    } catch (e: any) {
+      console.error('[Store] 生成写作命题失败:', e)
+      writingError.value = e?.message || '生成失败，请重试'
+    } finally {
+      writingGenerating.value = false
+    }
+  }
+
+  function startWritingSession(topicId: string) {
+    const topic = writingTopics.value.find(t => t.id === topicId)
+    if (!topic) return
+
+    const levelDesc = languageProficiencies.value[targetLang.value]
+      ? `用户自评水平：${getProficiencyLabel(languageProficiencies.value[targetLang.value])}`
+      : vocabUserLevel.value
+
+    const session: WritingSession = {
+      id: `write-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      topic,
+      content: '',
+      hints: [],
+      evaluation: null,
+      createdAt: Date.now(),
+      targetLang: targetLang.value,
+      userLevel: levelDesc,
+      status: 'writing',
+    }
+    writingSession.value = session
+    localStorage.setItem(STORAGE_KEY_WRITING_SESSION, JSON.stringify(session))
+  }
+
+  async function getWritingHint() {
+    if (!writingSession.value) return
+    const ws = writingSession.value
+
+    const key = getApiKey()
+    if (!key) {
+      showApiGuide.value = 'deepseek'
+      return
+    }
+    if (!vocabService) {
+      vocabService = new VocabTrainingService()
+    }
+    vocabService.setApiKey(key)
+
+    try {
+      writingLoadingHint.value = true
+      const hint = await vocabService.getWritingHint(
+        targetLang.value,
+        annotateLang.value,
+        ws.topic.title,
+        ws.content,
+        (p, c) => recordTokenUsage(p, c, 'writing_hint')
+      )
+      ws.hints.push(hint)
+      writingSession.value = { ...ws }
+      localStorage.setItem(STORAGE_KEY_WRITING_SESSION, JSON.stringify(ws))
+    } catch (e: any) {
+      console.error('[Store] 获取写作提示失败:', e)
+      writingError.value = e?.message || '获取提示失败'
+    } finally {
+      writingLoadingHint.value = false
+    }
+  }
+
+  function updateWritingContent(content: string) {
+    if (!writingSession.value) return
+    writingSession.value = { ...writingSession.value, content }
+    localStorage.setItem(STORAGE_KEY_WRITING_SESSION, JSON.stringify(writingSession.value))
+  }
+
+  async function submitWriting() {
+    if (!writingSession.value) return
+    const ws = writingSession.value
+    if (!ws.content.trim()) return
+
+    const key = getApiKey()
+    if (!key) {
+      showApiGuide.value = 'deepseek'
+      return
+    }
+    if (!vocabService) {
+      vocabService = new VocabTrainingService()
+    }
+    vocabService.setApiKey(key)
+
+    try {
+      writingEvaluating.value = true
+      writingError.value = ''
+      const evaluation = await vocabService.evaluateWriting(
+        targetLang.value,
+        annotateLang.value,
+        ws.topic.title,
+        ws.content,
+        (p, c) => recordTokenUsage(p, c, 'writing_eval')
+      )
+      ws.evaluation = evaluation
+      ws.status = 'completed'
+      writingSession.value = { ...ws }
+      localStorage.setItem(STORAGE_KEY_WRITING_SESSION, JSON.stringify(ws))
+      recordLearningEvent('writing_training', targetLang.value, `完成写作：${ws.topic.title}`)
+
+      // 加入历史
+      const existingIdx = writingHistory.value.findIndex(h => h.id === ws.id)
+      if (existingIdx >= 0) {
+        writingHistory.value[existingIdx] = { ...ws }
+      } else {
+        writingHistory.value.unshift({ ...ws })
+      }
+      if (writingHistory.value.length > 50) {
+        writingHistory.value = writingHistory.value.slice(0, 50)
+      }
+      localStorage.setItem(STORAGE_KEY_WRITING_HISTORY, JSON.stringify(writingHistory.value))
+    } catch (e: any) {
+      console.error('[Store] 提交写作评估失败:', e)
+      writingError.value = e?.message || '评估失败，请重试'
+    } finally {
+      writingEvaluating.value = false
+    }
+  }
+
+  function loadWritingSession(id: string) {
+    const found = writingHistory.value.find(s => s.id === id)
+    if (found) {
+      writingSession.value = { ...found }
+      localStorage.setItem(STORAGE_KEY_WRITING_SESSION, JSON.stringify(found))
+    }
+  }
+
+  function deleteWritingSession(id: string) {
+    writingHistory.value = writingHistory.value.filter(s => s.id !== id)
+    localStorage.setItem(STORAGE_KEY_WRITING_HISTORY, JSON.stringify(writingHistory.value))
+    if (writingSession.value?.id === id) {
+      writingSession.value = null
+      localStorage.removeItem(STORAGE_KEY_WRITING_SESSION)
+    }
+  }
+
+  function clearWritingSession() {
+    writingSession.value = null
+    localStorage.removeItem(STORAGE_KEY_WRITING_SESSION)
+  }
 
   // ===== 生词本 =====
   const showVocabBook = ref(false)
@@ -139,6 +501,98 @@ export const useAppStore = defineStore('app', () => {
   function clearVocabToast() {
     if (vocabToastTimer) clearTimeout(vocabToastTimer)
     vocabToastTimer = setTimeout(() => { vocabAddToast.value = '' }, 2000)
+  }
+
+  // ===== API token 用量追踪 =====
+  interface FeatureUsage {
+    promptTokens: number
+    completionTokens: number
+  }
+
+  interface TokenUsageData {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+    totalCost: number
+    byFeature: Record<string, FeatureUsage>
+  }
+
+  const DEFAULT_FEATURE_USAGE: FeatureUsage = { promptTokens: 0, completionTokens: 0 }
+
+  const tokenUsage = ref<TokenUsageData>(
+    (() => {
+      const raw = localStorage.getItem(STORAGE_KEY_TOKEN_USAGE)
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw)
+          // 兼容旧数据：迁移到新格式
+          if (!parsed.byFeature) {
+            parsed.byFeature = {}
+          }
+          return parsed as TokenUsageData
+        } catch {}
+      }
+      return { promptTokens: 0, completionTokens: 0, totalTokens: 0, totalCost: 0, byFeature: {} }
+    })()
+  )
+
+  function recordTokenUsage(promptTokens: number, completionTokens: number, feature?: string) {
+    if (!promptTokens && !completionTokens) return
+    const cost = (promptTokens / 1000000) * DEEPSEEK_PRICE_INPUT + (completionTokens / 1000000) * DEEPSEEK_PRICE_OUTPUT
+    tokenUsage.value.promptTokens += promptTokens
+    tokenUsage.value.completionTokens += completionTokens
+    tokenUsage.value.totalTokens += (promptTokens + completionTokens)
+    tokenUsage.value.totalCost += cost
+    if (feature) {
+      if (!tokenUsage.value.byFeature) {
+        tokenUsage.value.byFeature = {}
+      }
+      if (!tokenUsage.value.byFeature[feature]) {
+        tokenUsage.value.byFeature[feature] = { promptTokens: 0, completionTokens: 0 }
+      }
+      tokenUsage.value.byFeature[feature].promptTokens += promptTokens
+      tokenUsage.value.byFeature[feature].completionTokens += completionTokens
+    }
+    localStorage.setItem(STORAGE_KEY_TOKEN_USAGE, JSON.stringify(tokenUsage.value))
+  }
+
+  // ===== 余额查询 =====
+  interface BalanceInfo {
+    currency: string
+    totalBalance: string
+    grantedBalance: string
+    toppedUpBalance: string
+  }
+  const balance = ref<{ available: boolean; infos: BalanceInfo[] }>({ available: false, infos: [] })
+  const balanceLoading = ref(false)
+
+  async function fetchBalance() {
+    const key = getApiKey()
+    if (!key) {
+      balance.value = { available: false, infos: [] }
+      return
+    }
+    balanceLoading.value = true
+    try {
+      const res = await fetch('https://api.deepseek.com/user/balance', {
+        headers: { 'Authorization': `Bearer ${key}` },
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      balance.value = {
+        available: data.is_available,
+        infos: (data.balance_infos || []).map((b: any) => ({
+          currency: b.currency,
+          totalBalance: b.total_balance,
+          grantedBalance: b.granted_balance,
+          toppedUpBalance: b.topped_up_balance,
+        })),
+      }
+    } catch {
+      balance.value = { available: false, infos: [] }
+    } finally {
+      balanceLoading.value = false
+    }
   }
 
   function addVocabWord(word: string, translation: string) {
@@ -200,6 +654,7 @@ export const useAppStore = defineStore('app', () => {
     try {
       frenchResponse = new FrenchResponseService()
       frenchResponse.setApiKey(savedApiKey)
+      fetchBalance()
     } catch (e) {
       console.error('恢复 API Key 失败:', e)
     }
@@ -239,23 +694,25 @@ export const useAppStore = defineStore('app', () => {
     }
   }
 
-  // 恢复词汇周刊数据
+  // 恢复词汇周刊数据 — 先恢复历史期刊列表
+  const savedJournals = localStorage.getItem(STORAGE_KEY_VOCAB_JOURNALS)
+  if (savedJournals) {
+    try {
+      vocabJournals.value = JSON.parse(savedJournals)
+    } catch (e) {
+      console.error('恢复历史期刊列表失败:', e)
+    }
+  }
+  // 再恢复当前期刊
   const savedVocabJournal = localStorage.getItem(STORAGE_KEY_VOCAB_JOURNAL)
   if (savedVocabJournal) {
     try {
       vocabJournal.value = JSON.parse(savedVocabJournal)
     } catch (e) {
-      console.error('恢复词汇周刊失败:', e)
+      console.error('恢复当前期刊失败:', e)
     }
   }
-  // 迁移：已有的当前期刊如果不在历史列表中则补入
-  if (vocabJournal.value) {
-    const exists = vocabJournals.value.some(j => j.id === vocabJournal.value!.id)
-    if (!exists) {
-      vocabJournals.value.unshift(vocabJournal.value)
-      localStorage.setItem(STORAGE_KEY_VOCAB_JOURNALS, JSON.stringify(vocabJournals.value))
-    }
-  }
+  // 恢复期刊记录列表
   const savedVocabRecords = localStorage.getItem(STORAGE_KEY_VOCAB_RECORDS)
   if (savedVocabRecords) {
     try {
@@ -263,6 +720,19 @@ export const useAppStore = defineStore('app', () => {
     } catch (e) {
       console.error('恢复词汇记录失败:', e)
     }
+  }
+  // 迁移：将当前期刊补入历史列表（如果缺失）
+  if (vocabJournal.value) {
+    const exists = vocabJournals.value.some(j => j.id === vocabJournal.value!.id)
+    if (!exists) {
+      vocabJournals.value.unshift(vocabJournal.value)
+      localStorage.setItem(STORAGE_KEY_VOCAB_JOURNALS, JSON.stringify(vocabJournals.value))
+    }
+  }
+  // 迁移：如果记录存在但历史列表为空，从当前期刊重建
+  if (vocabJournals.value.length === 0 && vocabRecords.value.length > 0 && vocabJournal.value) {
+    vocabJournals.value = [vocabJournal.value]
+    localStorage.setItem(STORAGE_KEY_VOCAB_JOURNALS, JSON.stringify(vocabJournals.value))
   }
 
   function saveChatSessions() {
@@ -330,6 +800,8 @@ export const useAppStore = defineStore('app', () => {
     }
     frenchResponse.setApiKey(key)
     localStorage.setItem(STORAGE_KEY_API, key)
+    // 保存后自动查询余额
+    fetchBalance()
   }
 
   function clearApiKey() {
@@ -337,6 +809,7 @@ export const useAppStore = defineStore('app', () => {
       frenchResponse.setApiKey('')
     }
     localStorage.removeItem(STORAGE_KEY_API)
+    balance.value = { available: false, infos: [] }
   }
 
   function getApiKey(): string {
@@ -479,7 +952,8 @@ export const useAppStore = defineStore('app', () => {
       const results = await frenchResponse.generate(
         finalText,
         targetLang.value,
-        annotateLang.value
+        annotateLang.value,
+        (p, c) => recordTokenUsage(p, c, 'speaking')
       )
       responses.value = results
       recordLearningEvent('speaking_session', targetLang.value, finalText.slice(0, 50))
@@ -705,7 +1179,8 @@ export const useAppStore = defineStore('app', () => {
     try {
       const reply = await getChatService().sendMessage(
         session.messages.slice(0, -1),
-        text
+        text,
+        (p, c) => recordTokenUsage(p, c, 'chat')
       )
 
       const assistantMsg: ChatMessage = {
@@ -893,6 +1368,7 @@ export const useAppStore = defineStore('app', () => {
       })
 
       const data = await response.json()
+      recordTokenUsage(data.usage?.prompt_tokens || 0, data.usage?.completion_tokens || 0, 'chat_translate')
       const translated = data.choices?.[0]?.message?.content?.trim()
 
       chatTranslations.value = {
@@ -953,6 +1429,7 @@ export const useAppStore = defineStore('app', () => {
       })
 
       const data = await response.json()
+      recordTokenUsage(data.usage?.prompt_tokens || 0, data.usage?.completion_tokens || 0, 'chat_tips')
       const content = data.choices?.[0]?.message?.content?.trim()
       if (content) {
         // 尝试提取 JSON 数组
@@ -1042,6 +1519,7 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
       })
 
       const data = await response.json()
+      recordTokenUsage(data.usage?.prompt_tokens || 0, data.usage?.completion_tokens || 0, 'practice')
       const content = data.choices?.[0]?.message?.content?.trim()
       if (content) {
         addPracticeMsg({
@@ -1143,6 +1621,7 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
       })
 
       const data = await response.json()
+      recordTokenUsage(data.usage?.prompt_tokens || 0, data.usage?.completion_tokens || 0, 'practice_tips')
       const content = data.choices?.[0]?.message?.content?.trim()
       if (content) {
         const jsonMatch = content.match(/\[[\s\S]*\]/)
@@ -1355,6 +1834,7 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
           vocabGeneratingProgress.value = pct
           vocabGeneratingStatus.value = `正在生成期刊... ${chars < 1000 ? chars + '字' : (chars / 1000).toFixed(1) + 'K字'}`
         },
+        (p, c) => recordTokenUsage(p, c, 'vocab_journal')
       )
       vocabGeneratingProgress.value = 100
       vocabGeneratingStatus.value = '生成完成'
@@ -1414,6 +1894,8 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
   function deleteVocabJournal(id: string) {
     vocabJournals.value = vocabJournals.value.filter(j => j.id !== id)
     localStorage.setItem(STORAGE_KEY_VOCAB_JOURNALS, JSON.stringify(vocabJournals.value))
+    vocabRecords.value = vocabRecords.value.filter(r => r.id !== id)
+    localStorage.setItem(STORAGE_KEY_VOCAB_RECORDS, JSON.stringify(vocabRecords.value))
     if (vocabJournal.value?.id === id) {
       vocabJournal.value = vocabJournals.value[0] || null
     }
@@ -1447,7 +1929,7 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
 
     try {
       vocabAssessing.value = true
-      const assessment = await vocabService.assessLevel(history)
+      const assessment = await vocabService.assessLevel(history, (p, c) => recordTokenUsage(p, c, 'vocab_assess'))
       vocabUserLevel.value = assessment.level
 
       // 同步到对应语种的语言能力设置
@@ -1486,7 +1968,7 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
     try {
       vocabTranslating.value = true
       vocabSelectedText.value = word
-      const result = await vocabService.translateWord(word, targetLang.value, annotateLang.value)
+      const result = await vocabService.translateWord(word, targetLang.value, annotateLang.value, (p, c) => recordTokenUsage(p, c, 'vocab_translate'))
       vocabSelectedTranslation.value = result
       recordLearningEvent('vocab_word_lookup', targetLang.value, word)
     } catch (e: any) {
@@ -1544,6 +2026,8 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
           totalMessages: 0,
           totalVocabArticles: 0,
           totalVocabLookups: 0,
+          totalIntensiveTrainings: 0,
+          totalWritingTrainings: 0,
           totalPracticeMinutes: 0,
           level: languageProficiencies.value[evt.lang] || 'beginner',
           lastActiveDate: '',
@@ -1574,10 +2058,16 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
         case 'vocab_word_lookup':
           p.totalVocabLookups++
           break
+        case 'training_intensive':
+          p.totalIntensiveTrainings = (p.totalIntensiveTrainings || 0) + 1
+          break
+        case 'writing_training':
+          p.totalWritingTrainings = (p.totalWritingTrainings || 0) + 1
+          break
       }
 
       // Daily stats
-      let day = p.dailyStats.find(d => d.date === dateStr)
+      let day = p.dailyStats.find((d: DailyStats) => d.date === dateStr)
       if (!day) {
         day = {
           date: dateStr,
@@ -1588,6 +2078,8 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
           vocabArticles: 0,
           vocabLookups: 0,
           speakingSessions: 0,
+          intensiveTrainings: 0,
+          writingTrainings: 0,
           totalMinutes: 0,
         }
         p.dailyStats.push(day)
@@ -1600,6 +2092,8 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
         case 'vocab_article': day.vocabArticles++; break
         case 'vocab_word_lookup': day.vocabLookups++; break
         case 'speaking_session': day.speakingSessions++; break
+        case 'training_intensive': day.intensiveTrainings++; break
+        case 'writing_training': day.writingTrainings++; break
       }
     }
 
@@ -1906,6 +2400,35 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
     addVocabWord,
     removeVocabWord,
     toggleVocabBook,
+    // intensive training
+    trainingSession,
+    trainingHistory,
+    trainingGenerating,
+    trainingGenerateError,
+    trainingGenerateProgress,
+    trainingGenerateStatus,
+    generateTrainingQuestions,
+    submitTrainingAnswer,
+    goToTrainingQuestion,
+    loadTrainingSession,
+    deleteTrainingSession,
+    clearTrainingSession,
+    // writing training
+    writingTopics,
+    writingSession,
+    writingHistory,
+    writingGenerating,
+    writingLoadingHint,
+    writingEvaluating,
+    writingError,
+    generateWritingTopics,
+    startWritingSession,
+    getWritingHint,
+    updateWritingContent,
+    submitWriting,
+    loadWritingSession,
+    deleteWritingSession,
+    clearWritingSession,
     // progress
     learningEvents,
     langProgress,
@@ -1918,5 +2441,12 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
     showApiGuide,
     openApiGuide,
     dismissApiGuide,
+    // token usage
+    tokenUsage,
+    recordTokenUsage,
+    // balance
+    balance,
+    balanceLoading,
+    fetchBalance,
   }
 })

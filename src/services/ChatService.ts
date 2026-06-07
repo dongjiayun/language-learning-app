@@ -23,7 +23,8 @@ export class ChatService {
    */
   async sendMessage(
     history: ChatMessage[],
-    userMessage: string
+    userMessage: string,
+    onUsage?: (prompt: number, completion: number) => void
   ): Promise<string> {
     if (!this.apiKey) {
       return '请先在设置中配置 DeepSeek API Key 才能使用 AI 对话功能。'
@@ -59,6 +60,7 @@ export class ChatService {
       })
 
       const data = await response.json()
+      onUsage?.(data.usage?.prompt_tokens || 0, data.usage?.completion_tokens || 0)
       const content = data.choices?.[0]?.message?.content
       if (!content) {
         throw new Error('AI 返回内容为空')
