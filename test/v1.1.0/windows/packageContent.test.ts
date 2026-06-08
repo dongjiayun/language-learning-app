@@ -309,7 +309,7 @@ describe('安装场景验证 — 安装后目录结构', () => {
   /**
    * 模拟安装后应该有的文件结构：
    *   $INSTDIR/
-   *     DoulingoAssist.exe           （主程序，ASCII 路径名）
+   *     LanguageLearner.exe           （主程序，ASCII 路径名）
    *     resources/
    *       app.asar                   （应用代码）
    *       elevate.exe                （提权辅助）

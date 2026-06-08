@@ -9,7 +9,7 @@
 ## v1.8.7 (2026-06-08)
 
 ### 修复
-- Windows 安装包缺少执行文件问题：安装目录改用 ASCII 路径名（`DoulingoAssist`），避免中文路径导致 NSIS 7z 解压失败
+- Windows 安装包缺少执行文件问题：安装目录改用 ASCII 路径名（`LanguageLearner`），避免中文路径导致 NSIS 7z 解压失败
 - Windows 安装包架构从 ARM64 改为 x64，兼容 Intel/AMD 芯片的 Windows 电脑
 - `compression` 从 `maximum` 改为 `normal`，避免 macOS 打包的 7z 在 Windows 上解压异常
 - icon.ico 生成逻辑增强：Node.js 原生包装 PNG→ICO，不再依赖 Python
@@ -21,7 +21,7 @@
 - `build-win.mjs` 增加 `.ico` 文件生成检查和构建终止保护
 
 ### 变更
-- `productName`：`外语口语学习助手` → `DoulingoAssist`（ASCII 字符避免路径编码问题）
+- `productName`：`外语口语学习助手` → `LanguageLearner`（ASCII 字符避免路径编码问题）
 - `win.target`：指定 `arch: ["x64"]` 确保 Intel x64 架构打包
 - `win.artifactName`：使用 `productName` 变量动态命名
 - `build.directories.output`：设为 `release/`

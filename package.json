@@ -33,7 +33,7 @@
   },
   "build": {
     "appId": "com.doulingo.assist",
-    "productName": "DoulingoAssist",
+    "productName": "LanguageLearner",
     "directories": {
       "output": "release",
       "buildResources": "build"

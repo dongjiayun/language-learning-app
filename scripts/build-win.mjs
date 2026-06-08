@@ -73,7 +73,7 @@ console.log('========================================')
 console.log('  外语口语学习助手 - Windows 构建脚本')
 console.log('========================================')
 console.log('')
-console.log('  productName: DoulingoAssist (ASCII 安全路径名)')
+console.log('  productName: LanguageLearner (ASCII 安全路径名)')
 console.log('  shortcutName: 外语口语学习助手 (中文显示名)')
 
 // ---- 检查环境 ----
