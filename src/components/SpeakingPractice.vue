@@ -136,10 +136,13 @@ function handleSelectText(e: MouseEvent) {
             v-for="(hint, i) in store.practiceHints"
             :key="i"
             class="hint-btn"
-            @click="store.sendPracticeReply(hint)"
+            @click="store.sendPracticeReply(hint.text)"
           >
             <span class="hint-num">{{ i + 1 }}</span>
-            <span class="hint-text">{{ hint }}</span>
+            <span class="hint-content">
+              <span class="hint-text">{{ hint.text }}</span>
+              <span class="hint-translation">{{ hint.translation }}</span>
+            </span>
           </button>
         </div>
       </div>
@@ -529,6 +532,18 @@ function handleSelectText(e: MouseEvent) {
   color: var(--text-primary);
   white-space: normal;
   word-break: break-word;
+}
+
+.hint-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.hint-translation {
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 /* Empty */

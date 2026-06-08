@@ -105,7 +105,7 @@ export const useAppStore = defineStore('app', () => {
   const practiceLoading = ref(false)
   const practiceRecording = ref(false)
   const practiceInputText = ref('')
-  const practiceHints = ref<string[]>([])
+  const practiceHints = ref<ChatTip[]>([])
   const practiceHintsLoading = ref(false)
   const practiceIsActive = ref(false)
   const practiceTopicInterval = ref(60) // AI 等待时间（秒），0=关闭
@@ -1411,9 +1411,9 @@ export const useAppStore = defineStore('app', () => {
           messages: [
             {
               role: 'system',
-              content: `你是一名语言学习助手。请根据以下对话上下文，生成3条实用的${langLabel}学习提示。每条提示包含目标和翻译。
+              content: `你是一名语言学习助手。请根据以下对话上下文，生成3句${langLabel}回答，帮助用户接话。
 
-返回格式为JSON数组，每个元素包含text（${langLabel}原文）和translation（中文翻译）字段。只返回JSON数组，不要有其他文字。
+返回JSON数组，每个元素包含text（${langLabel}原文）和translation（中文翻译）字段。只返回JSON数组，不要有其他文字。
 
 示例：
 [{"text": "Bonjour, comment allez-vous?", "translation": "你好，您怎么样？"}]`,
@@ -1589,7 +1589,10 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
       return
     }
     const langChinese = getTargetLangChinese()
-    const lastAi = [...practiceMessages.value].reverse().find(m => m.role === 'ai')
+    // 取最近 6 条消息作为上下文
+    const context = practiceMessages.value.slice(-6).map(m =>
+      `${m.role === 'ai' ? 'AI' : '用户'}: ${m.content}`
+    ).join('\n')
 
     try {
       const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
@@ -1603,16 +1606,19 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
           messages: [
             {
               role: 'system',
-              content: `你是一名${langChinese}学习助手。用户正在练习口语对话，AI刚刚说了一段话。
+              content: `你是一名${langChinese}学习助手。用户正在练习口语对话，请根据以下对话上下文，生成3条用户可能的回复建议。
 
-请根据AI的话生成3条用户可能的回复建议，帮助用户接话。
+要求：
+1. 回复建议要符合当前对话的语境
+2. 覆盖不同的回应角度（同意、反问、补充新话题等）
+3. 每条建议用${langChinese}书写
 
 返回JSON数组，每个元素包含text（${langChinese}原文）和translation（中文翻译）字段。只返回JSON数组。
 示例：[{"text": "J'aime beaucoup la cuisine française.", "translation": "我非常喜欢法国菜。"}]`,
             },
             {
               role: 'user',
-              content: `AI说：${lastAi?.content || 'Bonjour!'}`,
+              content: `对话历史：\n${context || '对话刚开始，建议用简单问候。'}`,
             },
           ],
           temperature: 0.7,
@@ -1626,8 +1632,7 @@ ${context ? '对话历史：\n' + context : '这是对话开始，先用简单�
       if (content) {
         const jsonMatch = content.match(/\[[\s\S]*\]/)
         if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]) as ChatTip[]
-          practiceHints.value = parsed.map(h => `${h.text}（${h.translation}）`)
+          practiceHints.value = (JSON.parse(jsonMatch[0]) as ChatTip[]).slice(0, 3)
         }
       }
     } catch {

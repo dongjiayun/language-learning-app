@@ -520,18 +520,19 @@ ${history.slice(-10).join('\n---\n')}
 学生当前已写内容：
 ${content}
 
-请根据学生已写的内容，给出后续写作的续写建议。
+请根据学生已写的内容，给出后续可以直接写下的下一句话（${langName}），并说明这句话接下来可以往哪个方向发展。
+
 你需要提供：
-1. 一段续写引导（${langName}），帮助学生接续思路
+1. 一句续写引导（${langName}），提示接下来可以写什么
 2. 续写引导的 ${nativeName} 翻译
-3. 3个不同的发展方向（每个方向用一句话概括，${langName}）
-4. 每个发展方向的 ${nativeName} 翻译
+3. 3个不同的续写方向，每个方向是一句可以直接写入作文的句子（${langName}）
+4. 每个续写方向的 ${nativeName} 翻译
 
 请严格按照以下 JSON 格式返回（只返回纯 JSON）：
 {
-  "continuation": "续写引导段落（${langName}）",
+  "continuation": "续写引导提示（${langName}）",
   "continuationTranslation": "续写引导的${nativeName}翻译",
-  "options": ["方向1（${langName}）", "方向2（${langName}）", "方向3（${langName}）"],
+  "options": ["下一句可写的内容（${langName}）", "下一句可写的内容（${langName}）", "下一句可写的内容（${langName}）"],
   "optionsTranslation": ["方向1的${nativeName}翻译", "方向2的${nativeName}翻译", "方向3的${nativeName}翻译"]
 }`
 
