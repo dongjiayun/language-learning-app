@@ -420,6 +420,20 @@ const TTS_VOICES: Record<string, string[]> = {
 }
 const DEFAULT_TTS_VOICE = 'Samantha'
 
+/** 跨平台安全终止进程 */
+function safeKillProcess(proc: any) {
+  if (!proc) return
+  try {
+    if (process.platform === 'win32') {
+      // Windows: 用 taskkill 杀进程树，确保 PowerShell 子进程也被终止
+      try { execSync(`taskkill /pid ${proc.pid} /f /t`, { stdio: 'ignore' }) } catch {}
+      try { proc.kill() } catch {}
+    } else {
+      try { proc.kill('SIGINT') } catch {}
+    }
+  } catch {}
+}
+
 let currentTtsProcess: any = null
 
 // 查找系统中可用的最佳语音
@@ -467,16 +481,25 @@ function ttsSpeakWindows(text: string, lang: string): Promise<any> {
     `$synth.Speak($text)`
 
   return new Promise((resolve) => {
+    // 先停掉之前的朗读
+    safeKillProcess(currentTtsProcess)
     const proc = spawn('powershell.exe', [
       '-NoProfile', '-NonInteractive', '-Command', psCmd,
     ], { stdio: ['ignore', 'pipe', 'pipe'] })
+    currentTtsProcess = proc
     const timeout = setTimeout(() => {
-      try { proc.kill() } catch {}
+      safeKillProcess(proc)
+      if (currentTtsProcess === proc) currentTtsProcess = null
       resolve({ success: true })
     }, 120000)
-    proc.on('close', () => { clearTimeout(timeout); resolve({ success: true }) })
+    proc.on('close', () => {
+      clearTimeout(timeout)
+      if (currentTtsProcess === proc) currentTtsProcess = null
+      resolve({ success: true })
+    })
     proc.on('error', (err: Error) => {
       clearTimeout(timeout)
+      if (currentTtsProcess === proc) currentTtsProcess = null
       resolve({ success: false, error: err.message })
     })
   })
@@ -489,10 +512,8 @@ ipcMain.handle('tts-speak', async (_, params: { text: string; lang: string }) =>
   }
 
   // === macOS 分支（现有逻辑，完全不变） ===
-  if (currentTtsProcess) {
-    try { currentTtsProcess.kill('SIGINT') } catch {}
-    currentTtsProcess = null
-  }
+  safeKillProcess(currentTtsProcess)
+  currentTtsProcess = null
 
   const voice = findBestVoice(params.lang)
   console.log('[TTS] 朗读:', { text: params.text.substring(0, 30), lang: params.lang, voice })
@@ -504,11 +525,9 @@ ipcMain.handle('tts-speak', async (_, params: { text: string; lang: string }) =>
       })
 
       const timeout = setTimeout(() => {
-        if (currentTtsProcess) {
-          try { currentTtsProcess.kill('SIGINT') } catch {}
-          currentTtsProcess = null
-          resolve({ success: true })
-        }
+        safeKillProcess(currentTtsProcess)
+        currentTtsProcess = null
+        resolve({ success: true })
       }, 30000)
 
       currentTtsProcess.on('close', () => {
@@ -531,10 +550,8 @@ ipcMain.handle('tts-speak', async (_, params: { text: string; lang: string }) =>
 })
 
 ipcMain.handle('tts-stop', async () => {
-  if (currentTtsProcess) {
-    try { currentTtsProcess.kill('SIGINT') } catch {}
-    currentTtsProcess = null
-  }
+  safeKillProcess(currentTtsProcess)
+  currentTtsProcess = null
   return { success: true }
 })
 

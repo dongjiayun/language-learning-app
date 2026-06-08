@@ -7,298 +7,959 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&display=swap" rel="stylesheet">
 <style>
-  /* ===== Reset & Base ===== */
-  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #000;
-    color: #f5f5f7;
-    -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
-  }
-  ::selection { background: rgba(29,155,240,0.4); }
+/* ===== Reset & Base ===== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #000;
+  color: #f5f5f7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+::selection { background: rgba(29,155,240,0.4); }
 
-  /* ===== Navigation ===== */
-  nav {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    backdrop-filter: blur(20px) saturate(1.5);
-    -webkit-backdrop-filter: blur(20px) saturate(1.5);
-    background: rgba(0,0,0,0.8);
-    border-bottom: 0.5px solid rgba(255,255,255,0.08);
-  }
-  nav .inner {
-    max-width: 980px; margin: 0 auto;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 22px; height: 48px;
-  }
-  nav .logo {
-    font-weight: 700; font-size: 16px; letter-spacing: -0.3px;
-    background: linear-gradient(135deg, #1d9bf0, #0a84ff);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  nav a {
-    color: rgba(255,255,255,0.7); text-decoration: none;
-    font-size: 12px; font-weight: 500; transition: color 0.2s;
-    padding: 0 16px;
-  }
-  nav a:hover { color: #fff; }
+/* ===== Navigation ===== */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  background: rgba(0,0,0,0.72);
+  border-bottom: 0.5px solid rgba(255,255,255,0.06);
+  transition: background 0.3s;
+}
+nav.scrolled {
+  background: rgba(0,0,0,0.88);
+  border-bottom-color: rgba(255,255,255,0.10);
+}
+nav .inner {
+  max-width: 1120px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; height: 52px;
+}
+nav .logo {
+  font-weight: 700; font-size: 17px; letter-spacing: -0.3px;
+  background: linear-gradient(135deg, #1d9bf0, #0a84ff);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+nav .nav-links { display: flex; align-items: center; gap: 2px; }
+nav .nav-links a {
+  color: rgba(255,255,255,0.65); text-decoration: none;
+  font-size: 12px; font-weight: 500; transition: color 0.2s;
+  padding: 6px 14px; border-radius: 6px;
+}
+nav .nav-links a:hover { color: #fff; background: rgba(255,255,255,0.06); }
+nav .nav-cta {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 16px; border-radius: 980px;
+  background: #1d9bf0; color: #fff !important;
+  font-size: 12px; font-weight: 600;
+  text-decoration: none; margin-left: 12px;
+  transition: all 0.2s;
+}
+nav .nav-cta:hover { background: #0a84ff; transform: scale(1.03); }
 
-  /* ===== Hero ===== */
-  .hero {
-    min-height: 100vh;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center;
-    padding: 80px 24px 60px;
-    position: relative;
-    overflow: hidden;
-  }
-  .hero::before {
-    content: '';
-    position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-    background: radial-gradient(ellipse at 50% 30%, rgba(29,155,240,0.12) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 70%, rgba(10,132,255,0.06) 0%, transparent 50%);
-    pointer-events: none;
-  }
-  .hero .badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 16px; border-radius: 100px;
-    background: rgba(29,155,240,0.12);
-    border: 0.5px solid rgba(29,155,240,0.25);
-    font-size: 12px; font-weight: 500; color: #40b0ff;
-    margin-bottom: 28px;
-    letter-spacing: 0.3px;
-  }
-  .hero h1 {
-    font-size: clamp(42px, 8vw, 80px);
-    font-weight: 800;
-    letter-spacing: -2px;
-    line-height: 1.05;
-    margin-bottom: 16px;
-    background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.6) 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .hero .gradient-text {
-    background: linear-gradient(135deg, #1d9bf0, #0a84ff, #60b0ff);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .hero p {
-    font-size: clamp(16px, 2.5vw, 22px);
-    font-weight: 400;
-    color: rgba(255,255,255,0.5);
-    max-width: 600px;
-    line-height: 1.6;
-    margin-bottom: 40px;
-  }
-  .hero-actions {
-    display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;
-    position: relative; z-index: 2;
-  }
-  .hero-actions .btn {
-    display: inline-flex; align-items: center; gap: 10px;
-    padding: 14px 32px;
-    border-radius: 980px;
-    font-size: 15px; font-weight: 600;
-    text-decoration: none;
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    letter-spacing: -0.2px;
-  }
-  .hero-actions .btn.primary {
-    background: #1d9bf0;
-    color: #fff;
-    box-shadow: 0 8px 32px rgba(29,155,240,0.35);
-  }
-  .hero-actions .btn.primary:hover {
-    transform: scale(1.04);
-    box-shadow: 0 12px 40px rgba(29,155,240,0.45);
-  }
-  .hero-actions .btn.secondary {
-    background: rgba(255,255,255,0.08);
-    color: rgba(255,255,255,0.85);
-    border: 0.5px solid rgba(255,255,255,0.12);
-    backdrop-filter: blur(10px);
-  }
-  .hero-actions .btn.secondary:hover {
-    background: rgba(255,255,255,0.14);
-    transform: scale(1.04);
-  }
-  .hero .subtitle {
-    margin-top: 48px;
-    font-size: 13px;
-    color: rgba(255,255,255,0.3);
-    letter-spacing: 0.5px;
-  }
+/* ===== Hero ===== */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 100px 24px 60px;
+  position: relative;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute; inset: 0; z-index: 0;
+  overflow: hidden;
+}
+.hero-bg .orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.4;
+  animation: orbFloat 20s ease-in-out infinite;
+}
+.hero-bg .orb:nth-child(1) {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(29,155,240,0.25), transparent);
+  top: -15%; left: -10%;
+  animation-delay: 0s;
+}
+.hero-bg .orb:nth-child(2) {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(96,176,255,0.15), transparent);
+  bottom: -20%; right: -10%;
+  animation-delay: -7s;
+}
+.hero-bg .orb:nth-child(3) {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(10,132,255,0.12), transparent);
+  top: 40%; left: 60%;
+  animation-delay: -14s;
+}
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(40px, -60px) scale(1.05); }
+  50% { transform: translate(-30px, 30px) scale(0.95); }
+  75% { transform: translate(50px, 40px) scale(1.02); }
+}
+.hero .hero-content { position: relative; z-index: 1; }
+.hero .badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 16px; border-radius: 100px;
+  background: rgba(29,155,240,0.10);
+  border: 0.5px solid rgba(29,155,240,0.20);
+  font-size: 12px; font-weight: 500; color: #40b0ff;
+  margin-bottom: 28px; letter-spacing: 0.3px;
+  backdrop-filter: blur(8px);
+}
+.hero h1 {
+  font-size: clamp(44px, 9vw, 88px);
+  font-weight: 800;
+  letter-spacing: -3px;
+  line-height: 1.02;
+  margin-bottom: 20px;
+}
+.hero h1 .line {
+  display: block;
+  background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.5) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero h1 .line.gradient {
+  background: linear-gradient(135deg, #1d9bf0, #0a84ff, #60b0ff, #1d9bf0);
+  background-size: 200% 200%;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 4s ease-in-out infinite;
+}
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.hero p {
+  font-size: clamp(16px, 2.2vw, 21px);
+  font-weight: 400;
+  color: rgba(255,255,255,0.45);
+  max-width: 620px;
+  line-height: 1.7;
+  margin: 0 auto 44px;
+}
+.hero-actions {
+  display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;
+}
+.hero-actions .btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 16px 36px;
+  border-radius: 980px;
+  font-size: 16px; font-weight: 600;
+  text-decoration: none;
+  transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  letter-spacing: -0.2px;
+}
+.hero-actions .btn.primary {
+  background: #1d9bf0;
+  color: #fff;
+  box-shadow: 0 8px 40px rgba(29,155,240,0.35);
+}
+.hero-actions .btn.primary:hover {
+  transform: scale(1.05);
+  box-shadow: 0 14px 50px rgba(29,155,240,0.5);
+}
+.hero-actions .btn.secondary {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.85);
+  border: 0.5px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(12px);
+}
+.hero-actions .btn.secondary:hover {
+  background: rgba(255,255,255,0.12);
+  transform: scale(1.05);
+}
+.hero .subtitle {
+  margin-top: 48px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.25);
+  letter-spacing: 0.8px;
+}
+.hero .hero-french {
+  margin-top: 20px;
+  font-size: 24px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #1d9bf0, #60b0ff, #1d9bf0);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 4s ease-in-out infinite;
+  letter-spacing: 1px;
+  font-style: italic;
+}
+.hero .lang-tags {
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  margin-top: 20px;
+}
+.hero .lang-tag {
+  padding: 4px 14px;
+  border-radius: 100px;
+  font-size: 11px; font-weight: 500;
+  background: rgba(255,255,255,0.04);
+  border: 0.5px solid rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.4);
+}
 
-  /* Scroll indicator */
-  .scroll-indicator {
-    position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
-    width: 24px; height: 40px;
-    border: 2px solid rgba(255,255,255,0.2);
-    border-radius: 12px;
-    opacity: 0.5;
-  }
-  .scroll-indicator::after {
-    content: '';
-    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
-    width: 3px; height: 8px;
-    background: rgba(255,255,255,0.5);
-    border-radius: 2px;
-    animation: scrollPulse 2s infinite;
-  }
-  @keyframes scrollPulse {
-    0%, 100% { transform: translateX(-50%) translateY(0); opacity: 1; }
-    50% { transform: translateX(-50%) translateY(8px); opacity: 0.3; }
-  }
+/* ===== Scroll indicator ===== */
+.scroll-indicator {
+  position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  opacity: 0.4;
+  animation: fadeInOut 2s ease-in-out infinite;
+}
+.scroll-indicator span {
+  font-size: 10px; letter-spacing: 1px;
+  color: rgba(255,255,255,0.3);
+}
+.scroll-indicator .mouse {
+  width: 22px; height: 34px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 11px;
+  position: relative;
+}
+.scroll-indicator .mouse::after {
+  content: '';
+  position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+  width: 2px; height: 7px;
+  background: rgba(255,255,255,0.4);
+  border-radius: 2px;
+  animation: scrollDot 2s infinite;
+}
+@keyframes scrollDot {
+  0%, 100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+  50% { transform: translateX(-50%) translateY(10px); opacity: 0.2; }
+}
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
 
-  /* ===== Sections ===== */
-  section { padding: 100px 24px; }
-  section .inner { max-width: 980px; margin: 0 auto; }
-  section h2 {
-    font-size: clamp(28px, 5vw, 52px);
-    font-weight: 800;
-    letter-spacing: -1px;
-    line-height: 1.1;
-    margin-bottom: 12px;
-    text-align: center;
-  }
-  section .section-sub {
-    font-size: clamp(16px, 2vw, 20px);
-    color: rgba(255,255,255,0.4);
-    text-align: center;
-    max-width: 560px;
-    margin: 0 auto 60px;
-    line-height: 1.6;
-  }
+/* ===== Section shared ===== */
+section { padding: 120px 24px; }
+section .inner { max-width: 1120px; margin: 0 auto; }
+.section-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: #40b0ff;
+  text-transform: uppercase; letter-spacing: 2px;
+  margin-bottom: 16px;
+}
+section h2 {
+  font-size: clamp(34px, 5vw, 56px);
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  line-height: 1.08;
+  margin-bottom: 16px;
+}
+section .section-sub {
+  font-size: clamp(16px, 2vw, 20px);
+  color: rgba(255,255,255,0.4);
+  max-width: 580px;
+  line-height: 1.7;
+}
+.section-divider {
+  width: 100%; height: 0.5px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+}
 
-  /* ===== Features Grid ===== */
-  .features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 20px;
-    overflow: hidden;
-    border: 0.5px solid rgba(255,255,255,0.06);
-  }
-  .feature-card {
-    background: #0a0a0c;
-    padding: 36px 28px 32px;
-    transition: background 0.3s;
-    position: relative;
-  }
-  .feature-card:hover { background: #111115; }
-  .feature-card .icon-wrap {
-    width: 44px; height: 44px;
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px;
-    margin-bottom: 16px;
-    background: linear-gradient(135deg, rgba(29,155,240,0.15), rgba(10,132,255,0.08));
-    border: 0.5px solid rgba(29,155,240,0.15);
-  }
-  .feature-card h3 {
-    font-size: 17px; font-weight: 700;
-    margin-bottom: 6px;
-    letter-spacing: -0.2px;
-  }
-  .feature-card p {
-    font-size: 13px; line-height: 1.6;
-    color: rgba(255,255,255,0.45);
-  }
+/* ===== Features ===== */
+#features { position: relative; }
+#features .inner {
+  display: flex; flex-direction: column; align-items: center;
+}
+.features-intro {
+  text-align: center; margin-bottom: 72px;
+}
+.features-intro h2 {
+  background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.5) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 24px;
+  overflow: hidden;
+  border: 0.5px solid rgba(255,255,255,0.05);
+  width: 100%;
+}
+.feature-card {
+  background: #0a0a0c;
+  padding: 40px 32px 36px;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+  overflow: hidden;
+}
+.feature-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(29,155,240,0.3), transparent);
+  opacity: 0; transition: opacity 0.4s;
+}
+.feature-card:hover::before { opacity: 1; }
+.feature-card:hover { background: #0d0d12; }
+.feature-card .icon-wrap {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  margin-bottom: 18px;
+  background: linear-gradient(135deg, rgba(29,155,240,0.12), rgba(10,132,255,0.06));
+  border: 0.5px solid rgba(29,155,240,0.12);
+  transition: all 0.3s;
+}
+.feature-card:hover .icon-wrap {
+  background: linear-gradient(135deg, rgba(29,155,240,0.18), rgba(10,132,255,0.10));
+  border-color: rgba(29,155,240,0.25);
+}
+.feature-card h3 {
+  font-size: 18px; font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: -0.2px;
+}
+.feature-card p {
+  font-size: 14px; line-height: 1.7;
+  color: rgba(255,255,255,0.42);
+}
 
-  /* ===== Download ===== */
-  .download-section {
-    text-align: center;
-    background: linear-gradient(180deg, transparent 0%, rgba(29,155,240,0.04) 100%);
-  }
-  .download-cards {
-    display: flex; flex-wrap: wrap; gap: 16px; justify-content: center;
-    margin-top: 40px;
-  }
-  .download-card {
-    flex: 1; min-width: 260px; max-width: 360px;
-    background: rgba(255,255,255,0.04);
-    border: 0.5px solid rgba(255,255,255,0.08);
-    border-radius: 20px;
-    padding: 32px 28px;
-    text-align: left;
-    transition: all 0.3s;
-    text-decoration: none;
-    color: #f5f5f7;
-  }
-  .download-card:hover {
-    background: rgba(255,255,255,0.08);
-    transform: translateY(-4px);
-    border-color: rgba(29,155,240,0.3);
-  }
-  .download-card .os-icon { font-size: 36px; margin-bottom: 12px; }
-  .download-card .os-name { font-size: 18px; font-weight: 700; margin-bottom: 2px; }
-  .download-card .os-sub { font-size: 13px; color: rgba(255,255,255,0.35); margin-bottom: 20px; }
-  .download-card .os-size {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-size: 12px; font-weight: 600; color: #40b0ff;
-    padding: 6px 14px; border-radius: 100px;
-    background: rgba(29,155,240,0.1);
-    border: 0.5px solid rgba(29,155,240,0.15);
-  }
+/* ===== Details / How it works ===== */
+#how-it-works {
+  background: linear-gradient(180deg, transparent 0%, rgba(29,155,240,0.02) 50%, transparent 100%);
+}
+#how-it-works .inner {
+  display: flex; flex-direction: column; align-items: center;
+}
+.how-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  width: 100%;
+  margin-top: 16px;
+}
+.how-card {
+  text-align: center;
+  padding: 40px 24px;
+  border-radius: 24px;
+  background: rgba(255,255,255,0.02);
+  border: 0.5px solid rgba(255,255,255,0.04);
+  transition: all 0.3s;
+}
+.how-card:hover {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.08);
+  transform: translateY(-4px);
+}
+.how-card .step {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(29,155,240,0.15), rgba(10,132,255,0.08));
+  border: 0.5px solid rgba(29,155,240,0.15);
+  font-size: 18px; font-weight: 800; color: #40b0ff;
+  margin-bottom: 20px;
+}
+.how-card h3 {
+  font-size: 17px; font-weight: 700;
+  margin-bottom: 8px;
+}
+.how-card p {
+  font-size: 13px; line-height: 1.7;
+  color: rgba(255,255,255,0.4);
+}
 
-  /* ===== Changelog ===== */
-  .changelog-entry {
-    background: rgba(255,255,255,0.03);
-    border: 0.5px solid rgba(255,255,255,0.06);
-    border-radius: 16px;
-    padding: 20px 24px;
-    font-size: 13px;
-  }
-  .changelog-entry .version {
-    display: inline-flex; align-items: center; gap: 10px;
-    margin-bottom: 8px;
-  }
-  .changelog-entry .tag {
-    display: inline-block;
-    background: #1d9bf0; color: #fff;
-    font-size: 12px; font-weight: 700;
-    padding: 3px 10px; border-radius: 6px;
-  }
-  .changelog-entry .date { font-size: 13px; color: rgba(255,255,255,0.35); }
-  .changelog-entry ul { padding-left: 18px; color: rgba(255,255,255,0.5); }
-  .changelog-entry ul li { margin-bottom: 3px; }
-  .changelog-link {
-    display: block; margin-top: 12px;
-    font-size: 13px; color: #40b0ff; text-decoration: none;
-    font-weight: 500;
-  }
-  .changelog-link:hover { text-decoration: underline; }
+/* ===== Stats ===== */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 0.5px solid rgba(255,255,255,0.04);
+  margin: 80px 0 0;
+  width: 100%;
+}
+.stat-item {
+  padding: 36px 24px;
+  text-align: center;
+  background: #0a0a0c;
+}
+.stat-item .num {
+  font-size: 32px; font-weight: 800;
+  background: linear-gradient(135deg, #1d9bf0, #60b0ff);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
+}
+.stat-item .label {
+  font-size: 13px; color: rgba(255,255,255,0.35);
+  font-weight: 500;
+}
 
-  /* ===== Footer ===== */
-  footer {
-    text-align: center;
-    padding: 32px 24px 48px;
-    border-top: 0.5px solid rgba(255,255,255,0.06);
-    font-size: 12px;
-    color: rgba(255,255,255,0.25);
-  }
-  footer a { color: rgba(255,255,255,0.4); text-decoration: none; transition: color 0.2s; }
-  footer a:hover { color: #40b0ff; }
+/* ===== Download ===== */
+#download {
+  text-align: center;
+  position: relative;
+}
+#download::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 100%, rgba(29,155,240,0.06) 0%, transparent 60%);
+  pointer-events: none;
+}
+#download .inner {
+  display: flex; flex-direction: column; align-items: center;
+  position: relative; z-index: 1;
+}
+#download h2 {
+  background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.5) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.download-cards {
+  display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;
+  margin-top: 44px; width: 100%;
+}
+.download-card {
+  flex: 1; min-width: 280px; max-width: 400px;
+  background: rgba(255,255,255,0.02);
+  border: 0.5px solid rgba(255,255,255,0.06);
+  border-radius: 24px;
+  padding: 40px 32px;
+  text-align: left;
+  transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  text-decoration: none;
+  color: #f5f5f7;
+  position: relative;
+  overflow: hidden;
+}
+.download-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(29,155,240,0.25), transparent);
+  opacity: 0; transition: opacity 0.4s;
+}
+.download-card:hover::before { opacity: 1; }
+.download-card:hover {
+  background: rgba(255,255,255,0.04);
+  transform: translateY(-6px);
+  border-color: rgba(29,155,240,0.2);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.download-card .os-icon { font-size: 40px; margin-bottom: 16px; display: block; }
+.download-card .os-name { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
+.download-card .os-sub { font-size: 14px; color: rgba(255,255,255,0.3); margin-bottom: 24px; }
+.download-card .os-features {
+  display: flex; flex-direction: column; gap: 8px; margin-bottom: 28px;
+}
+.download-card .os-features span {
+  font-size: 13px; color: rgba(255,255,255,0.4);
+  display: flex; align-items: center; gap: 8px;
+}
+.download-card .os-features span::before {
+  content: '✓';
+  color: #30d158;
+  font-weight: 700;
+}
+.download-card .os-size {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; color: #40b0ff;
+  padding: 8px 20px; border-radius: 100px;
+  background: rgba(29,155,240,0.08);
+  border: 0.5px solid rgba(29,155,240,0.12);
+  transition: all 0.2s;
+}
+.download-card:hover .os-size {
+  background: rgba(29,155,240,0.14);
+  border-color: rgba(29,155,240,0.25);
+}
 
-  /* ===== Animations ===== */
-  .fade-in {
-    opacity: 0; transform: translateY(30px);
-    transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  }
-  .fade-in.visible { opacity: 1; transform: translateY(0); }
+/* ===== About / API ===== */
+#about {
+  background: linear-gradient(180deg, transparent, rgba(29,155,240,0.015), transparent);
+}
+#about .inner {
+  display: flex; flex-direction: column; align-items: center;
+}
+.about-slogan {
+  text-align: center;
+  padding: 20px 0 56px;
+}
+.about-slogan .slogan {
+  font-size: clamp(32px, 5vw, 52px);
+  font-weight: 900;
+  background: linear-gradient(135deg, #1d9bf0, #0a84ff, #60b0ff, #1d9bf0);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 3px;
+  animation: gradientShift 5s ease-in-out infinite;
+}
+.about-slogan .slogan-sub {
+  font-size: 14px; color: rgba(255,255,255,0.25);
+  margin-top: 12px; letter-spacing: 1px;
+}
+.api-about-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  width: 100%;
+}
+.api-about-card {
+  background: rgba(255,255,255,0.02);
+  border: 0.5px solid rgba(255,255,255,0.05);
+  border-radius: 24px;
+  padding: 36px 28px;
+  transition: all 0.35s;
+}
+.api-about-card:hover {
+  background: rgba(255,255,255,0.04);
+  transform: translateY(-4px);
+  border-color: rgba(29,155,240,0.15);
+}
+.api-about-card.future {
+  border-color: rgba(255,204,0,0.10);
+  background: rgba(255,204,0,0.01);
+}
+.api-about-card.future:hover {
+  border-color: rgba(255,204,0,0.25);
+  background: rgba(255,204,0,0.02);
+}
+.api-about-icon { font-size: 34px; margin-bottom: 16px; display: block; }
+.api-about-card h3 {
+  font-size: 18px; font-weight: 700;
+  margin-bottom: 12px;
+  letter-spacing: -0.2px;
+}
+.api-about-card ul {
+  padding-left: 0;
+  list-style: none;
+  font-size: 14px; line-height: 1.8;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 16px;
+}
+.api-about-card ul li {
+  padding-left: 20px;
+  position: relative;
+  margin-bottom: 4px;
+}
+.api-about-card ul li::before {
+  content: '→';
+  position: absolute; left: 0;
+  color: #40b0ff;
+  font-weight: 600;
+}
+.api-about-card ul li strong { color: rgba(255,255,255,0.7); font-weight: 600; }
+.api-about-card p { font-size: 13px; color: rgba(255,255,255,0.3); }
+.api-about-tip {
+  font-size: 12px !important;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(29,155,240,0.06);
+  display: inline-block;
+  color: rgba(255,255,255,0.45) !important;
+}
+.coming-badge {
+  display: inline-block;
+  font-size: 10px; font-weight: 700;
+  padding: 3px 8px; border-radius: 6px;
+  background: rgba(255,204,0,0.12); color: #ffcc00;
+  vertical-align: middle; margin-left: 6px;
+  letter-spacing: 0.3px;
+}
 
-  /* ===== Responsive ===== */
-  @media (max-width: 734px) {
-    .hero h1 { font-size: 38px; letter-spacing: -1px; }
-    section { padding: 60px 16px; }
-    .features-grid { grid-template-columns: 1fr; }
-    nav .nav-links { display: none; }
-    .download-card { min-width: 100%; }
-  }
+/* ===== Changelog ===== */
+#changelog .inner { text-align: center; }
+.changelog-list {
+  max-width: 600px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.changelog-entry {
+  background: rgba(255,255,255,0.02);
+  border: 0.5px solid rgba(255,255,255,0.05);
+  border-radius: 16px;
+  padding: 20px 24px;
+  font-size: 14px;
+  text-align: left;
+  transition: all 0.2s;
+}
+.changelog-entry:hover {
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.08);
+}
+.changelog-entry .version {
+  display: inline-flex; align-items: center; gap: 10px;
+  margin-bottom: 8px;
+}
+.changelog-entry .tag {
+  display: inline-block;
+  background: #1d9bf0; color: #fff;
+  font-size: 12px; font-weight: 700;
+  padding: 3px 10px; border-radius: 6px;
+}
+.changelog-entry .date { font-size: 13px; color: rgba(255,255,255,0.3); }
+.changelog-entry ul {
+  padding-left: 18px;
+  color: rgba(255,255,255,0.45);
+}
+.changelog-entry ul li { margin-bottom: 3px; }
+.changelog-link {
+  display: inline-block; margin-top: 20px;
+  font-size: 14px; color: #40b0ff; text-decoration: none;
+  font-weight: 500;
+  padding: 8px 20px;
+  border: 0.5px solid rgba(29,155,240,0.2);
+  border-radius: 980px;
+  transition: all 0.2s;
+}
+.changelog-link:hover {
+  background: rgba(29,155,240,0.06);
+  border-color: rgba(29,155,240,0.3);
+}
+
+/* ===== CTA ===== */
+.cta-section {
+  text-align: center;
+  background: linear-gradient(180deg, transparent, rgba(29,155,240,0.03), transparent);
+  padding: 100px 24px;
+}
+.cta-section h2 {
+  font-size: clamp(30px, 4.5vw, 48px);
+  font-weight: 800;
+  margin-bottom: 16px;
+  background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.5) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.cta-section .cta-sub {
+  font-size: 16px; color: rgba(255,255,255,0.4);
+  margin-bottom: 36px;
+}
+.cta-section .btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 16px 40px;
+  border-radius: 980px;
+  font-size: 16px; font-weight: 600;
+  text-decoration: none; color: #fff;
+  background: linear-gradient(135deg, #1d9bf0, #0a84ff);
+  box-shadow: 0 8px 40px rgba(29,155,240,0.35);
+  transition: all 0.35s;
+}
+.cta-section .btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 14px 50px rgba(29,155,240,0.5);
+}
+
+/* ===== Footer ===== */
+footer {
+  padding: 48px 24px 52px;
+  border-top: 0.5px solid rgba(255,255,255,0.04);
+}
+footer .inner {
+  max-width: 1120px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px; color: rgba(255,255,255,0.25);
+}
+footer .footer-links { display: flex; gap: 20px; }
+footer a { color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.2s; }
+footer a:hover { color: #40b0ff; }
+
+/* ===== Animations ===== */
+.fade-in {
+  opacity: 0; transform: translateY(30px);
+  transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.fade-in.visible { opacity: 1; transform: translateY(0); }
+.fade-in-scale {
+  opacity: 0; transform: scale(0.92);
+  transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.fade-in-scale.visible { opacity: 1; transform: scale(1); }
+
+/* ===== Responsive ===== */
+@media (max-width: 1024px) {
+  .features-grid, .how-grid, .api-about-grid { grid-template-columns: repeat(2, 1fr); }
+  .mockup-wrap, .mockup-wrap.reverse { flex-direction: column; }
+  .mockup-device { flex: 0 0 auto; max-width: 340px; width: 100%; }
+}
+@media (max-width: 734px) {
+  body { font-size: 16px; }
+  .hero h1 { font-size: 36px; letter-spacing: -1.5px; }
+  .hero h1 .line:not(.gradient) { background: #fff; -webkit-text-fill-color: #fff; }
+  section { padding: 72px 16px; }
+  .features-grid, .how-grid, .api-about-grid { grid-template-columns: 1fr; }
+  .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  .stats-bar .stat-item:nth-child(3),
+  .stats-bar .stat-item:nth-child(4) { border-top: 0.5px solid rgba(255,255,255,0.04); }
+  nav .nav-links a:not(.nav-cta) { display: none; }
+  nav .nav-cta { margin-left: 0; }
+  .download-card { min-width: 100%; }
+  footer .inner { flex-direction: column; gap: 12px; }
+  .mockup-device { max-width: 100%; }
+}
+
+/* ===== Screenshot mockup styles ===== */
+.mockup-device {
+  flex: 0 0 340px;
+  max-width: 340px;
+  position: relative;
+}
+.mockup-device .screenshot {
+  width: 100%;
+  border-radius: 14px;
+  box-shadow: 0 25px 80px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.06);
+  border: 0.5px solid rgba(255,255,255,0.06);
+  display: block;
+  transition: transform 0.3s;
+}
+.mockup-device .screenshot:hover {
+  transform: scale(1.02);
+}
+.mockup-device .screenshot-label {
+  text-align: center;
+  font-size: 11px;
+  color: rgba(255,255,255,0.2);
+  margin-top: 6px;
+  letter-spacing: 0.5px;
+}
+.mockup-wrap {
+  display: flex;
+  gap: 48px;
+  align-items: center;
+  margin: 48px 0;
+  width: 100%;
+}
+.mockup-wrap.reverse { flex-direction: row-reverse; }
+.mockup-content { flex: 1; min-width: 0; }
+.mockup-content h3 {
+  font-size: 22px; font-weight: 800; margin-bottom: 8px;
+  letter-spacing: -0.3px;
+}
+.mockup-content .sub {
+  font-size: 14px; color: rgba(255,255,255,0.35); margin-bottom: 16px;
+  line-height: 1.7;
+}
+.mockup-content .desc {
+  font-size: 14px; line-height: 1.8;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 16px;
+}
+.mockup-content .feature-list {
+  list-style: none; padding: 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.mockup-content .feature-list li {
+  font-size: 13px; color: rgba(255,255,255,0.45);
+  padding-left: 20px; position: relative;
+  line-height: 1.6;
+}
+.mockup-content .feature-list li::before {
+  content: '✓'; position: absolute; left: 0;
+  color: #30d158; font-weight: 700;
+}
+.mockup-content .highlight-tag {
+  display: inline-block;
+  font-size: 11px; font-weight: 600;
+  padding: 3px 10px; border-radius: 6px;
+  margin-bottom: 12px;
+  background: rgba(29,155,240,0.10);
+  border: 0.5px solid rgba(29,155,240,0.15);
+  color: #40b0ff;
+}
+.feature-detail-wrap {
+  margin-bottom: 80px;
+  width: 100%;
+}
+.feature-detail-wrap:last-child { margin-bottom: 0; }
+
+/* ===== Nobody Knows Learning Section ===== */
+.mlga-section {
+  padding: 120px 24px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, transparent 0%, rgba(255,71,87,0.03) 30%, rgba(255,71,87,0.01) 70%, transparent 100%);
+}
+.mlga-section .inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.mlga-grid {
+  display: flex;
+  gap: 80px;
+  align-items: center;
+}
+.mlga-content { flex: 1; min-width: 0; }
+.mlga-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: rgba(255,71,87,0.10);
+  border: 0.5px solid rgba(255,71,87,0.15);
+  color: #ff4757;
+  margin-bottom: 16px;
+  letter-spacing: 0.5px;
+}
+.mlga-title {
+  font-size: clamp(40px, 5.5vw, 58px);
+  font-weight: 900;
+  letter-spacing: -1.5px;
+  line-height: 1.05;
+  margin-bottom: 20px;
+}
+.mlga-title .mlga-highlight {
+  background: linear-gradient(135deg, #ff4757, #ff6b81, #ff4757);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 3s ease-in-out infinite;
+}
+.mlga-sub {
+  font-size: 17px;
+  color: rgba(255,255,255,0.4);
+  line-height: 1.8;
+  margin-bottom: 28px;
+}
+.mlga-features {
+   display: flex;
+   flex-direction: column;
+   gap: 10px;
+   margin-bottom: 0;
+ }
+.mlga-features .mlga-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.6;
+}
+.mlga-features .mlga-feature-item .mlga-feature-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  margin-top: 2px;
+}
+.mlga-stats {
+  display: flex;
+  gap: 32px;
+}
+.mlga-stat {
+  display: flex;
+  flex-direction: column;
+}
+.mlga-stat .mlga-num {
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 2px;
+}
+.mlga-stat .mlga-label {
+  font-size: 12px;
+  color: rgba(255,255,255,0.3);
+  font-weight: 500;
+}
+.mlga-art {
+  flex: 0 0 460px;
+  max-width: 460px;
+}
+.mlga-img-wrap {
+  position: relative;
+  width: 100%;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 30px 100px rgba(0,0,0,0.5);
+}
+.mlga-img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.mlga-img-fight {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.mlga-img-fight span {
+  font-family: 'Inter', sans-serif;
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: #ffd700;
+  text-shadow: 0 0 12px rgba(255,215,0,0.6), 0 0 30px rgba(255,215,0,0.3);
+  white-space: nowrap;
+}
+.mlga-img-text-wrap {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 28px 18px 18px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
+}
+.mlga-img-slogan {
+  display: block;
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 900;
+  color: #ffd700;
+  text-shadow:
+    0 0 10px rgba(255,215,0,0.6),
+    0 0 30px rgba(255,215,0,0.4),
+    0 0 60px rgba(255,215,0,0.2),
+    0 2px 20px rgba(0,0,0,0.5);
+  letter-spacing: 1px;
+  line-height: 1.15;
+  animation: goldShine 2.5s ease-in-out infinite;
+}
+.mlga-img-slogan .mlga-img-highlight {
+  color: #ffd700;
+  -webkit-text-fill-color: #ffd700;
+  text-fill-color: #ffd700;
+  font-weight: 900;
+  text-shadow:
+    0 0 10px rgba(255,215,0,0.6),
+    0 0 30px rgba(255,215,0,0.4),
+    0 0 60px rgba(255,215,0,0.2),
+    0 2px 20px rgba(0,0,0,0.5);
+}
+
+@keyframes goldShine {
+  0%, 100% { text-shadow: 0 0 10px rgba(255,215,0,0.4), 0 0 30px rgba(255,215,0,0.2), 0 2px 20px rgba(0,0,0,0.5); }
+  50% { text-shadow: 0 0 15px rgba(255,215,0,0.8), 0 0 45px rgba(255,215,0,0.5), 0 0 80px rgba(255,215,0,0.3), 0 2px 20px rgba(0,0,0,0.5); }
+}
+@media (max-width: 1024px) {
+  .mlga-grid { flex-direction: column-reverse; gap: 48px; }
+  .mlga-art { flex: 0 0 auto; max-width: 420px; }
+}
+@media (max-width: 734px) {
+  .mlga-section { padding: 80px 20px; }
+  .mlga-stats { gap: 20px; }
+  .mlga-stat .mlga-num { font-size: 22px; }
+  .mlga-art { max-width: 100%; }
+  .mlga-features .mlga-feature-item { font-size: 13px; }
+}
 </style>
 </head>
 <body>
@@ -309,130 +970,490 @@
     <span class="logo">LanguageLearner</span>
     <div class="nav-links">
       <a href="#features">功能</a>
-      <a href="#download">下载</a>
+      <a href="#how-it-works">原理</a>
+      <a href="#about">技术</a>
       <a href="#changelog">更新</a>
       <a href="https://github.com/dongjiayun/language-learning-app" target="_blank">GitHub</a>
+      <a href="#download" class="nav-cta">免费下载</a>
     </div>
   </div>
 </nav>
 
 <!-- Hero -->
 <section class="hero">
-  <div class="badge">✨ v1.8.8 · 已支持 macOS & Windows</div>
-  <h1>
-    用 AI 打破<br>
-    <span class="gradient-text">语言壁垒</span>
-  </h1>
-  <p>多语种口语练习 · 实时语音识别 · AI 对话 · 词汇训练 · 写作辅导<br>你的全能外语学习伴侣</p>
-  <div class="hero-actions">
-    <a href="#download" class="btn primary">免费下载</a>
-    <a href="#features" class="btn secondary">了解更多</a>
+  <div class="hero-bg">
+    <div class="orb"></div>
+    <div class="orb"></div>
+    <div class="orb"></div>
   </div>
-  <div class="subtitle">支持法语 · 英语 · 日语 · 中文</div>
-  <div class="scroll-indicator"></div>
+  <div class="hero-content">
+    <div class="badge">✨ v1.8.9 · 已支持 macOS & Windows</div>
+    <h1>
+      <span class="line">用 AI 打破</span>
+      <span class="line gradient">语言壁垒</span>
+    </h1>
+    <p>多语种口语练习 · 实时语音识别 · AI 对话 · 词汇训练 · 写作辅导<br>你的全能外语学习伴侣</p>
+    <div class="hero-actions">
+      <a href="#download" class="btn primary">免费下载</a>
+      <a href="#features" class="btn secondary">了解更多 →</a>
+    </div>
+    <div class="subtitle">一站式语言学习平台</div>
+    <div class="hero-french">Bonjour, j'aime apprendre les langues</div>
+    <div class="lang-tags">
+      <span class="lang-tag">🇫🇷 法语</span>
+      <span class="lang-tag">🇬🇧 英语</span>
+      <span class="lang-tag">🇯🇵 日语</span>
+      <span class="lang-tag">🇨🇳 中文</span>
+    </div>
+  </div>
+  <div class="scroll-indicator">
+    <div class="mouse"></div>
+    <span>向下滚动</span>
+  </div>
 </section>
 
 <!-- Features -->
 <section id="features">
   <div class="inner">
-    <h2>强大功能。<br>简单体验。</h2>
-    <p class="section-sub">每一个功能都为语言学习者精心设计，让练习变得自然高效。</p>
-    <div class="features-grid">
+    <div class="features-intro">
+      <div class="section-label">功能介绍</div>
+      <h2>强大功能。<br>简单体验。</h2>
+      <p class="section-sub" style="margin: 16px auto 0;">每一个功能都为语言学习者精心设计，让练习变得自然高效。从语音输入到 AI 对话，从词汇积累到写作提升，一站式覆盖听说读写。</p>
+    </div>
+
+    <!-- 1. AI 对话 -->
+    <div class="feature-detail-wrap">
+      <div class="mockup-wrap">
+        <div class="mockup-device">
+          <img class="screenshot" src="screenshots/01-ai-chat.png" alt="AI 对话截图" loading="lazy" />
+          <div class="screenshot-label">AI 对话 · 纯法语多轮交互</div>
+        </div>
+        <div class="mockup-content">
+          <div class="highlight-tag">🤖 沉浸式对话</div>
+          <h3>AI 多轮对话</h3>
+          <p class="sub">与 AI 进行自然的多轮对话，多会话管理，像跟真人聊天一样练习。</p>
+          <p class="desc">
+            基于 DeepSeek 大模型的智能对话引擎，支持多会话管理，自动生成对话标题，轻松切换不同话题。支持语音输入和键盘打字，AI 回复附带翻译，选中任意文本即可一键翻译。上下文自动持久化保存，每次回来都能继续上次的话题。
+          </p>
+          <ul class="feature-list">
+            <li><strong>多会话管理</strong> — 自动生成标题，轻松切换不同话题</li>
+            <li><strong>语音 + 文字双输入</strong> — 灵活选择输入方式</li>
+            <li><strong>一键翻译</strong> — 选中 AI 回复即可获取翻译</li>
+            <li><strong>学习提示</strong> — AI 提供语境相关的表达建议</li>
+            <li><strong>上下文持久化</strong> — 对话历史自动保存，随时继续</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 词汇训练 -->
+    <div class="feature-detail-wrap">
+      <div class="mockup-wrap reverse">
+        <div class="mockup-device">
+          <img class="screenshot" src="screenshots/02-vocab-training.png" alt="词汇训练截图" loading="lazy" />
+          <div class="screenshot-label">词汇训练 · AI 生成法语期刊</div>
+        </div>
+        <div class="mockup-content">
+          <div class="highlight-tag">📖 AI 阅读</div>
+          <h3>词汇训练 · 智能期刊</h3>
+          <p class="sub">AI 根据你的语言水平生成定制化外语期刊，沉浸式阅读学习。</p>
+          <p class="desc">
+            先评估你的词汇水平，再智能生成 5-30 篇目标语言文章，覆盖时政、文化、美食、科技、娱乐等丰富分类。瀑布流卡片布局，精美配图 + 摘要，点击进入详情。支持全文翻译和划词翻译——选中任意词汇即时查看翻译和例句。可设置每篇文章字数和篇数，历次生成的期刊完整保留。
+          </p>
+          <ul class="feature-list">
+            <li><strong>AI 水平评估</strong> — 智能评估语言水平，推荐匹配内容</li>
+            <li><strong>多领域覆盖</strong> — 时政、文化、美食、科技等丰富分类</li>
+            <li><strong>划词翻译</strong> — 选中任意词汇即时翻译 + 例句</li>
+            <li><strong>全文翻译</strong> — 一键查看文章完整翻译</li>
+            <li><strong>个性化配置</strong> — 字数 200-1000、篇数 5-30 自由调节</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. 口语练习 -->
+    <div class="feature-detail-wrap">
+      <div class="mockup-wrap">
+        <div class="mockup-device">
+          <img class="screenshot" src="screenshots/03-speaking-practice.png" alt="口语练习截图" loading="lazy" />
+          <div class="screenshot-label">口语练习 · 文字模式对话 + AI 提示</div>
+        </div>
+        <div class="mockup-content">
+          <div class="highlight-tag">🗣️ 交互式陪练</div>
+          <h3>AI 口语练习</h3>
+          <p class="sub">模拟真实对话场景的 AI 口语陪练，类似 Duolingo Max 的交互体验。</p>
+          <p class="desc">
+            AI 老师主动发起话题，引导你开口说外语。当你沉默超过设定时间，AI 自动给出多条表达提示帮你接上话。可自定义话题触发频率（10-60 秒），自由切换语音和文字输入。每次练习的完整对话记录都会保存，方便回顾进步轨迹。
+          </p>
+          <ul class="feature-list">
+            <li><strong>AI 主动提问</strong> — 模拟真实对话场景，引导话题走向</li>
+            <li><strong>智能等待提示</strong> — 沉默时自动给出表达建议</li>
+            <li><strong>自定义话题间隔</strong> — 10-60 秒自由调节对话节奏</li>
+            <li><strong>语音 / 文字切换</strong> — 适应不同场景和习惯</li>
+            <li><strong>自动朗读</strong> — AI 回复自动朗读，强化听力训练</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. 强化训练 -->
+    <div class="feature-detail-wrap">
+      <div class="mockup-wrap reverse">
+        <div class="mockup-device">
+          <img class="screenshot" src="screenshots/04-intensive-training.png" alt="强化训练截图" loading="lazy" />
+          <div class="screenshot-label">强化训练 · 语境填空作答中</div>
+        </div>
+        <div class="mockup-content">
+          <div class="highlight-tag">💪 刻意练习</div>
+          <h3>强化训练 · 语境填空</h3>
+          <p class="sub">AI 根据你的词汇水平生成 30 道语境填空题，精读训练稳步提升。</p>
+          <p class="desc">
+            先评估你的当前词汇水平，AI 自动生成 30 道语境填空题，覆盖不同难度等级。每道题都是一句完整的真实语境句子，你需要填写被挖空的单词。答完一题自动前进，全部完成后统计正确率。支持查看正确答案和翻译，所有训练记录保留，可随时重做历史题目。
+          </p>
+          <ul class="feature-list">
+            <li><strong>AI 智能出题</strong> — 根据词汇水平生成 30 道填空题</li>
+            <li><strong>语境填空</strong> — 在完整句子中理解词汇用法</li>
+            <li><strong>实时批改</strong> — 提交答案即刻判断正误</li>
+            <li><strong>进度追踪</strong> — 30 题进度一目了然，正确率统计</li>
+            <li><strong>历史记录保留</strong> — 历次训练数据完整留存</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. 写作训练 -->
+    <div class="feature-detail-wrap">
+      <div class="mockup-wrap">
+        <div class="mockup-device">
+          <img class="screenshot" src="screenshots/05-writing-training.png" alt="写作训练截图" loading="lazy" />
+          <div class="screenshot-label">写作训练 · AI 续写建议</div>
+        </div>
+        <div class="mockup-content">
+          <div class="highlight-tag">✍️ AI 写作教练</div>
+          <h3>写作辅导 · 智能批改</h3>
+          <p class="sub">AI 提供续写建议、语法批改、评分优化，全面提升写作能力。</p>
+          <p class="desc">
+            AI 出题生成写作命题，从日常话题到深度讨论，难度分级适配。写作过程中随时获取 AI 续写建议和多个不同的发展方向。提交后 AI 全面批改评分，标出语法、拼写、表达和用词问题，逐句给出修改建议和解释。从遣词造句到篇章结构，像有一位私人写作教练随时指导。
+          </p>
+          <ul class="feature-list">
+            <li><strong>AI 智能出题</strong> — 根据水平生成多样化写作命题</li>
+            <li><strong>实时续写建议</strong> — 写作卡顿时 AI 提供方向引导</li>
+            <li><strong>全面批改评分</strong> — 语法、拼写、表达、用词多维度评估</li>
+            <li><strong>逐句修改建议</strong> — 原文对照 + 修改说明，知其然更知其所以然</li>
+            <li><strong>写作历史保留</strong> — 所有习作完整保存，见证进步</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. 其他亮点卡片 -->
+    <div class="features-grid" style="margin-top:0;">
       <div class="feature-card fade-in">
         <div class="icon-wrap">🎙️</div>
         <h3>语音识别</h3>
-        <p>讯飞语音引擎实时识别你的发音，精准转写，即时反馈。</p>
+        <p>讯飞语音引擎实时识别你的发音，精准转写，即时反馈。支持中、英、法、日多语种语音输入。</p>
       </div>
       <div class="feature-card fade-in">
-        <div class="icon-wrap">🤖</div>
-        <h3>AI 对话</h3>
-        <p>基于 DeepSeek 的多轮对话，贴合语境的学习提示，自然提升语感。</p>
+        <div class="icon-wrap">📕</div>
+        <h3>生词本</h3>
+        <p>阅读和对话中遇到的生词一键收藏，自动记录上下文。按日期分组检索，支持多语种生词管理，随时复习巩固。</p>
       </div>
       <div class="feature-card fade-in">
-        <div class="icon-wrap">🗣️</div>
-        <h3>口语练习</h3>
-        <p>AI 主动引导话题，实时录音识别，自动朗读反馈，像真人对话一样自然。</p>
+        <div class="icon-wrap">📊</div>
+        <h3>学习进度追踪</h3>
+        <p>自动记录每次学习活动——对话、口语、阅读、写作全追踪。日/周/月统计，连续打卡天数，语种维度全面分析学习轨迹。</p>
       </div>
       <div class="feature-card fade-in">
-        <div class="icon-wrap">📖</div>
-        <h3>词汇训练</h3>
-        <p>分级评估词汇水平，智能生成词汇期刊，生词本一键收藏。</p>
+        <div class="icon-wrap">🎨</div>
+        <h3>深色 / 浅色主题</h3>
+        <p>默认暗色主题护眼舒适，浅色模式适合明亮环境。还可跟随系统自动切换，在任何光线下都有最佳体验。</p>
       </div>
       <div class="feature-card fade-in">
-        <div class="icon-wrap">✍️</div>
-        <h3>写作辅导</h3>
-        <p>AI 提供续写建议，语法批改评分，逐句优化提升写作能力。</p>
+        <div class="icon-wrap">💾</div>
+        <h3>数据导入导出</h3>
+        <p>支持 API 密钥、学习进度、生词本等完整数据导入导出。跨设备迁移零门槛，学习数据永不丢失。</p>
       </div>
       <div class="feature-card fade-in">
-        <div class="icon-wrap">💪</div>
-        <h3>强化训练</h3>
-        <p>根据词汇水平生成阅读理解题，精读文章逐题解析，稳步提升。</p>
+        <div class="icon-wrap">🌐</div>
+        <h3>多语种支持</h3>
+        <p>中文、English、Français、日本語 四种语言任意组合。语音输入、AI 输出、界面翻译标注全链路覆盖，真正的多语学习平台。</p>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar fade-in-scale">
+      <div class="stat-item">
+        <div class="num">6+</div>
+        <div class="label">功能模块</div>
+      </div>
+      <div class="stat-item">
+        <div class="num">4</div>
+        <div class="label">支持语种</div>
+      </div>
+      <div class="stat-item">
+        <div class="num">¥0.5</div>
+        <div class="label">百万 Token · DeepSeek 成本</div>
+      </div>
+      <div class="stat-item">
+        <div class="num">1/27</div>
+        <div class="label">vs GPT-4o 算力成本</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Download -->
-<section id="download" class="download-section">
+<!-- Make Learning Great Again -->
+<section class="mlga-section">
   <div class="inner">
+    <div class="mlga-grid">
+      <div class="mlga-content">
+        <h2 class="mlga-title">NOBODY KNOWS LEARNING<br><span class="mlga-highlight">BETTER THAN ME</span></h2>
+        <p class="mlga-sub">从被嘲笑到被追捧，AI 让语言学习不再是少数人的天赋。<br>每个人都能用最自然的方式掌握一门外语。</p>
+        <div class="mlga-features">
+          <div class="mlga-feature-item">
+            <span class="mlga-feature-icon" style="background:rgba(29,155,240,0.15);color:#1d9bf0;">✓</span>
+            <span><strong style="color:#fff;">DeepSeek 大模型驱动</strong> — 6 大功能模块覆盖听说读写，AI 实时反馈</span>
+          </div>
+          <div class="mlga-feature-item">
+            <span class="mlga-feature-icon" style="background:rgba(48,209,88,0.15);color:#30d158;">✓</span>
+            <span><strong style="color:#fff;">语音 + 文字双模式</strong> — 讯飞 ASR 实时语音识别，打字同样流畅</span>
+          </div>
+          <div class="mlga-feature-item">
+            <span class="mlga-feature-icon" style="background:rgba(255,159,10,0.15);color:#ff9f0a;">✓</span>
+            <span><strong style="color:#fff;">多语种支持</strong> — 法语、英语、日语、中文，自由切换学习</span>
+          </div>
+          <div class="mlga-feature-item">
+            <span class="mlga-feature-icon" style="background:rgba(191,90,242,0.15);color:#bf5af2;">✓</span>
+            <span><strong style="color:#fff;">每日仅需 ¥0.5</strong> — DeepSeek API 极致性价比，人人用得起的 AI 教练</span>
+          </div>
+        </div>
+      </div>
+      <div class="mlga-art">
+        <div class="mlga-img-wrap">
+          <img class="mlga-img" src="screenshots/trump-fight.jpg" alt="Make Learning Great Again" loading="lazy" />
+          <div class="mlga-img-fight">
+            <span>FIGHT!</span>
+            <span>FIGHT!</span>
+            <span>FIGHT!</span>
+          </div>
+          <div class="mlga-img-text-wrap">
+            <span class="mlga-img-slogan">MAKE LEARNING<br><span class="mlga-img-highlight">GREAT AGAIN</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- How it works -->
+<section id="how-it-works">
+  <div class="inner">
+    <div class="section-label">工作原理</div>
+    <h2 style="text-align:center;">三步上手，<br>轻松学习。</h2>
+    <p class="section-sub" style="text-align:center; margin: 12px auto 0;">从配置到练习，只需简单三步即可开始你的语言学习之旅。</p>
+    <div class="how-grid">
+      <div class="how-card fade-in">
+        <div class="step">1</div>
+        <h3>配置 API</h3>
+        <p>填入 DeepSeek 和讯飞 API Key（均有免费额度），即可解锁全部 AI 功能。应用内提供一键直达申请链接。</p>
+      </div>
+      <div class="how-card fade-in">
+        <div class="step">2</div>
+        <h3>选择语言</h3>
+        <p>设置你的母语和学习目标语言，调整掌握水平。支持中、英、法、日四种语言任意组合学习。</p>
+      </div>
+      <div class="how-card fade-in">
+        <div class="step">3</div>
+        <h3>开始练习</h3>
+        <p>进入对话、口语、阅读或写作模块，按需选择练习方式。AI 实时反馈，陪你从零到流利。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- About / API -->
+<section id="about">
+  <div class="inner">
+    <div class="section-label">技术架构</div>
+    <div class="about-slogan">
+      <div class="slogan">外语好啊，外语得学</div>
+      <div class="slogan-sub">独立开发者 × AI 大模型，构建你的专属语言教练</div>
+    </div>
+
+    <div class="api-about-grid">
+      <div class="api-about-card fade-in">
+        <span class="api-about-icon">🧠</span>
+        <h3>DeepSeek — AI 大脑</h3>
+        <p style="margin-bottom:12px;">驱动所有语言相关的 AI 功能，模拟真人对话与教学场景：</p>
+        <ul>
+          <li><strong>AI 对话</strong> — 模拟真人对话场景，贴合上下文给出自然回应</li>
+          <li><strong>口语练习</strong> — 主动引导话题，生成练习提示，实时反馈</li>
+          <li><strong>词汇期刊</strong> — 根据你的水平生成图文并茂的阅读材料</li>
+          <li><strong>强化训练</strong> — 阅读理解、精读解析、词汇巩固一条龙</li>
+          <li><strong>写作辅导</strong> — 续写建议、语法批改、逐句优化</li>
+          <li><strong>能力评估</strong> — 智能评估词汇水平，推荐合适内容</li>
+        </ul>
+        <p class="api-about-tip">💡 需自行申请 API Key，在应用设置中填入即可使用</p>
+      </div>
+      <div class="api-about-card fade-in">
+        <span class="api-about-icon">👂</span>
+        <h3>讯飞 — 语音耳朵</h3>
+        <p style="margin-bottom:12px;">将你的语音实时转写成文字，精准识别多语种发音：</p>
+        <ul>
+          <li><strong>口语练习识别</strong> — 实时识别你的跟读和回答</li>
+          <li><strong>语音输入对话</strong> — 在 AI 对话中用语音代替打字</li>
+          <li><strong>多语种支持</strong> — 中、英、法、日等多语种语音识别</li>
+        </ul>
+        <p class="api-about-tip">💡 每月免费额度，首次注册即可使用</p>
+      </div>
+      <div class="api-about-card fade-in future">
+        <span class="api-about-icon">☁️</span>
+        <h3>腾讯云语音识别 <span class="coming-badge">即将上线</span></h3>
+        <p style="margin-bottom:12px;">我们正在接入腾讯云语音识别服务，提供更多选择：</p>
+        <ul>
+          <li><strong>高精度识别</strong> — 业界领先的语音识别准确率</li>
+          <li><strong>更低延迟</strong> — 实时流式识别，响应更快更流畅</li>
+          <li><strong>无缝切换</strong> — 与现有讯飞引擎一键切换使用</li>
+        </ul>
+        <p class="api-about-tip">🎉 敬请期待，即将在后续版本中上线</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- Download -->
+<section id="download">
+  <div class="inner">
+    <div class="section-label">免费下载</div>
     <h2>立即开始学习</h2>
-    <p class="section-sub">免费开源，选择你的平台下载安装。</p>
+    <p class="section-sub" style="margin: 12px auto 0;">免费开源，选择你的平台下载安装。所有功能完全免费使用。</p>
     <div class="download-cards">
-      <a href="../release/LanguageLearner-1.8.8-arm64.dmg" class="download-card fade-in">
-        <div class="os-icon">🍏</div>
+      <a href="../release/LanguageLearner-1.8.9-arm64.dmg" class="download-card fade-in">
+        <span class="os-icon">🍏</span>
         <div class="os-name">macOS</div>
         <div class="os-sub">macOS 12+ · Intel & Apple Silicon</div>
+        <div class="os-features">
+          <span>原生 Apple Silicon 支持</span>
+          <span>系统语音引擎 TTS</span>
+          <span>完美适配深色模式</span>
+        </div>
         <span class="os-size">⬇ 下载 · 92 MB</span>
       </a>
-      <a href="../release/LanguageLearner-Setup-1.8.8.exe" class="download-card fade-in">
-        <div class="os-icon">🪟</div>
+      <a href="../release/LanguageLearner-Setup-1.8.9.exe" class="download-card fade-in">
+        <span class="os-icon">🪟</span>
         <div class="os-name">Windows</div>
         <div class="os-sub">Windows 10/11 · 64-bit</div>
+        <div class="os-features">
+          <span>PowerShell SAPI 语音</span>
+          <span>NSIS 安装包</span>
+          <span>完整功能体验</span>
+        </div>
         <span class="os-size">⬇ 下载 · 76 MB</span>
       </a>
     </div>
   </div>
 </section>
 
+<div class="section-divider"></div>
+
 <!-- Changelog -->
 <section id="changelog">
   <div class="inner">
-    <h2>更新日志</h2>
-    <p class="section-sub">持续迭代，不断进化。</p>
-    <div class="changelog-entry fade-in">
-      <div class="version">
-        <span class="tag">v1.8.8</span>
-        <span class="date">2026年6月8日</span>
+    <div class="section-label">更新动态</div>
+    <h2>持续迭代，<br>不断进化。</h2>
+    <p class="section-sub" style="margin: 12px auto 36px;">保持高频更新，倾听用户反馈，让产品越来越好用。</p>
+    <div class="changelog-list">
+      <div class="changelog-entry fade-in">
+        <div class="version">
+          <span class="tag">v1.9.0</span>
+          <span class="date">2026年6月9日</span>
+        </div>
+        <ul>
+          <li>官网介绍页新增法语标语和 MLGA 特色区块</li>
+          <li>5 大功能模块配真实截图嵌入介绍页</li>
+          <li>写作提示优化：点击重新生成，不再叠加</li>
+        </ul>
       </div>
-      <ul>
-        <li>优化提示逻辑：聊天提示给出回答例句、写作提示直接给出下一句</li>
-      </ul>
+      <div class="changelog-entry fade-in">
+        <div class="version">
+          <span class="tag">v1.8.9</span>
+          <span class="date">2026年6月8日</span>
+        </div>
+        <ul>
+          <li>官网全面重写，大厂级产品介绍页面</li>
+          <li>设置页新增 slogan 和 API 能力说明</li>
+          <li>新增腾讯云语音识别即将接入预告</li>
+          <li>修复 Windows TTS 初始化异常</li>
+        </ul>
+      </div>
+      <div class="changelog-entry fade-in">
+        <div class="version">
+          <span class="tag">v1.8.7</span>
+          <span class="date">2026年6月7日</span>
+        </div>
+        <ul>
+          <li>全局品牌名更新为 LanguageLearner</li>
+          <li>数据导入导出功能增强，新增 API 密钥导出</li>
+          <li>官网全新改版上线</li>
+        </ul>
+      </div>
     </div>
     <a href="https://github.com/dongjiayun/language-learning-app/blob/main/CHANGELOG.md" class="changelog-link">查看完整更新日志 →</a>
   </div>
 </section>
 
+<div class="section-divider"></div>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2>准备好开始了吗？</h2>
+  <p class="cta-sub">免费、开源、跨平台。用 AI 重新定义你的语言学习方式。</p>
+  <a href="#download" class="btn">免费下载 LanguageLearner →</a>
+</section>
+
 <!-- Footer -->
 <footer>
   <div class="inner">
-    <p>
+    <span>© 2026 LanguageLearner · 开源项目 · MIT License</span>
+    <div class="footer-links">
       <a href="https://github.com/dongjiayun/language-learning-app">GitHub 仓库</a>
-      &nbsp;·&nbsp; 开源项目 &nbsp;·&nbsp; MIT License
-    </p>
+      <a href="#changelog">更新日志</a>
+      <a href="https://github.com/dongjiayun/language-learning-app/issues" target="_blank">反馈建议</a>
+    </div>
   </div>
 </footer>
 
 <!-- Scroll animation -->
 <script>
+// IntersectionObserver for scroll animations
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     if (entry.isIntersecting) {
       entry.target.classList.add('visible')
     }
   })
-}, { threshold: 0.15 })
+}, { threshold: 0.12 })
 
-document.querySelectorAll('.fade-in').forEach(el => observer.observe(el))
+document.querySelectorAll('.fade-in, .fade-in-scale').forEach(el => observer.observe(el))
+
+// Nav scroll effect
+let lastScroll = 0
+window.addEventListener('scroll', () => {
+  const nav = document.querySelector('nav')
+  const currentScroll = window.pageYOffset
+  if (currentScroll > 60) {
+    nav.classList.add('scrolled')
+  } else {
+    nav.classList.remove('scrolled')
+  }
+  lastScroll = currentScroll
+}, { passive: true })
 </script>
 
 </body>

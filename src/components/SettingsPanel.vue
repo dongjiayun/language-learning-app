@@ -542,6 +542,50 @@ function onProficiencyChange(lang: string) {
             </Transition>
           </div>
         </section>
+
+        <!-- ===== 关于应用 ===== -->
+        <section class="section">
+          <div class="section-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>关于应用</span>
+          </div>
+          <div class="section-card">
+            <div class="slogan">
+              <span class="slogan-text">外语好啊，外语得学</span>
+            </div>
+            <details class="sop-details">
+              <summary class="sop-summary">DeepSeek 能做什么？</summary>
+              <div class="sop-desc">
+                <p>DeepSeek 是本应用的"大脑"，负责所有语言相关的 AI 功能：</p>
+                <ul>
+                  <li><strong>AI 对话</strong> — 模拟真人对话场景，贴合上下文给出自然回应</li>
+                  <li><strong>口语练习</strong> — 主动引导话题，生成练习提示，实时反馈</li>
+                  <li><strong>词汇期刊</strong> — 根据你的水平生成图文并茂的阅读材料</li>
+                  <li><strong>强化训练</strong> — 生成阅读理解题，精读文章逐题解析</li>
+                  <li><strong>写作辅导</strong> — 提供续写建议、语法批改、逐句优化</li>
+                  <li><strong>能力评估</strong> — 智能评估词汇水平，推荐合适内容</li>
+                </ul>
+                <p class="sop-tip">💡 只需在 API 设置中填入 DeepSeek Key 即可使用全部功能</p>
+              </div>
+            </details>
+            <details class="sop-details">
+              <summary class="sop-summary">科大讯飞能做什么？</summary>
+              <div class="sop-desc">
+                <p>讯飞语音引擎是本应用的"耳朵"，负责将你的语音转写成文字：</p>
+                <ul>
+                  <li><strong>口语练习录音识别</strong> — 实时识别你的跟读和回答</li>
+                  <li><strong>语音输入</strong> — 在 AI 对话中用语音代替打字</li>
+                  <li><strong>多语种支持</strong> — 支持中、英、法、日等多语种语音识别</li>
+                </ul>
+                <p class="sop-tip">💡 讯飞提供每月免费额度，注册即可使用</p>
+              </div>
+            </details>
+            <div class="future-note">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <span><strong>腾讯云语音识别</strong> 即将接入，敬请期待 🎉</span>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   </div>
@@ -1366,4 +1410,45 @@ function onProficiencyChange(lang: string) {
   font-size: 13px; color: var(--text-muted);
   margin-bottom: 0; padding-top: 4px;
 }
+
+/* ===== Slogan ===== */
+.slogan {
+  text-align: center;
+  padding: 20px 0 16px;
+}
+.slogan-text {
+  font-size: 22px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #1d9bf0, #0a84ff, #60b0ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 2px;
+}
+
+/* ===== About app ===== */
+.sop-desc {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  padding: 8px 2px;
+}
+.sop-desc p { margin-bottom: 8px; }
+.sop-desc ul { padding-left: 18px; margin-bottom: 8px; }
+.sop-desc ul li { margin-bottom: 4px; }
+
+.future-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-top: 4px;
+  border-radius: 8px;
+  background: rgba(29,155,240,.08);
+  border: 0.5px solid rgba(29,155,240,.15);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.future-note strong { color: var(--accent); }
+.future-note svg { color: var(--accent); flex-shrink: 0; }
 </style>

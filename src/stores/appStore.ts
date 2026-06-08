@@ -401,7 +401,7 @@ export const useAppStore = defineStore('app', () => {
         ws.content,
         (p, c) => recordTokenUsage(p, c, 'writing_hint')
       )
-      ws.hints.push(hint)
+      ws.hints = [hint]
       writingSession.value = { ...ws }
       localStorage.setItem(STORAGE_KEY_WRITING_SESSION, JSON.stringify(ws))
     } catch (e: any) {
