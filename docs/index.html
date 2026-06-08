@@ -483,6 +483,7 @@ section .section-sub {
   background: rgba(29,155,240,0.08);
   border: 0.5px solid rgba(29,155,240,0.12);
   transition: all 0.2s;
+  text-decoration: none;
 }
 .download-card:hover .os-size {
   background: rgba(29,155,240,0.14);
@@ -1502,19 +1503,20 @@ footer a:hover { color: #40b0ff; }
     <h2>立即开始学习</h2>
     <p class="section-sub" style="margin: 12px auto 0;">免费开源，选择你的平台下载安装。所有功能完全免费使用。</p>
     <div class="download-cards">
-      <a href="https://github.com/dongjiayun/language-learning-app/releases/download/v1.9.0/LanguageLearner-1.9.0-arm64.dmg" class="download-card fade-in">
+      <div class="download-card fade-in">
         <span class="os-icon">🍏</span>
         <div class="os-name">macOS</div>
         <div class="os-sub">macOS 12+</div>
         <div class="os-features">
           <span>✅ Apple Silicon · 立即下载</span>
           <span>系统语音引擎 TTS · 深色模式</span>
+          <span>Intel 版本正在适配中</span>
         </div>
         <div class="os-size-row">
-          <span class="os-size">⬇ 下载 · 92 MB</span>
+          <a href="https://github.com/dongjiayun/language-learning-app/releases/download/v1.9.0/LanguageLearner-1.9.0-arm64.dmg" class="os-size">⬇ 下载 · 92 MB</a>
           <span class="os-badge">Intel 版开发中</span>
         </div>
-      </a>
+      </div>
       <a href="https://github.com/dongjiayun/language-learning-app/releases/download/v1.9.0/LanguageLearner-Setup-1.9.0.exe" class="download-card fade-in">
         <span class="os-icon">🪟</span>
         <div class="os-name">Windows</div>
