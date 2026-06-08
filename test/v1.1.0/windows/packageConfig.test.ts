@@ -56,8 +56,10 @@ describe('package.json — Windows 构建配置', () => {
       expect(pkg.build).toHaveProperty('win')
     })
 
-    it('win.target 应该包含 nsis', () => {
-      expect(pkg.build.win.target).toContain('nsis')
+    it('win.target 应包含 nsis 且 arch 为 x64', () => {
+      const target = pkg.build.win.target[0]
+      expect(target.target).toBe('nsis')
+      expect(target.arch).toContain('x64')
     })
 
     it('win.icon 应为 build/icon.ico', () => {
@@ -188,9 +190,9 @@ describe('scripts/build-win.mjs — 构建脚本', () => {
     expect(content).toContain('update-changelog')
   })
 
-  it('构建产物路径应为 dist/', () => {
+  it('构建产物路径应为 release/', () => {
       const content = readFile(scriptPath)
-      expect(content).toContain('dist/')
+      expect(content).toContain('release/')
     })
 })
 

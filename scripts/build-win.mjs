@@ -16,18 +16,65 @@
  */
 
 import { execSync } from 'child_process'
-import { existsSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { join } from 'path'
 
 function run(cmd, env = {}) {
   console.log(`> ${cmd}`)
   execSync(cmd, { stdio: 'inherit', shell: true, env: { ...process.env, ...env } })
 }
 
-console.log('')
+/**
+ * 后备方案：用 Node.js 将 PNG 包装为 ICO 文件。
+ * 现代 Windows (Vista+) 支持 ICO 内嵌完整 PNG 数据，
+ * 所以我们只需封装 ICO 头部 + PNG 字节即可。
+ */
+function generateIcoFromPng(pngPath, icoPath) {
+  try {
+    if (existsSync(icoPath)) {
+      console.log('  ✓ icon.ico 已存在，跳过生成')
+      return true
+    }
+    if (!existsSync(pngPath)) {
+      console.warn(`  ⚠ 源 PNG 文件不存在: ${pngPath}`)
+      return false
+    }
+
+    const pngData = readFileSync(pngPath)
+    const size = pngData.length
+
+    // ICO 文件头 (6 bytes)
+    const header = Buffer.alloc(6)
+    header.writeUInt16LE(0, 0)      // reserved
+    header.writeUInt16LE(1, 2)      // type: ICO
+    header.writeUInt16LE(1, 4)      // count: 1 image
+
+    // ICO 目录项 (16 bytes)
+    const entry = Buffer.alloc(16)
+    entry.writeUInt8(0, 0)          // width (0 = 256)
+    entry.writeUInt8(0, 1)          // height (0 = 256)
+    entry.writeUInt8(0, 2)          // color palette
+    entry.writeUInt8(0, 3)          // reserved
+    entry.writeUInt16LE(1, 4)       // color planes
+    entry.writeUInt16LE(32, 6)      // bits per pixel
+    entry.writeUInt32LE(size, 8)    // image data size
+    entry.writeUInt32LE(22, 12)     // image data offset (header 6 + entry 16)
+
+    writeFileSync(icoPath, Buffer.concat([header, entry, pngData]))
+    console.log(`  ✓ icon.ico 已通过 Node.js 生成 (${size} bytes)`)
+    return true
+  } catch (err) {
+    console.warn(`  ⚠ Node.js 生成 icon.ico 失败: ${err.message}`)
+    return false
+  }
+}
+
 console.log('========================================')
 console.log('  外语口语学习助手 - Windows 构建脚本')
 console.log('========================================')
 console.log('')
+console.log('  productName: DoulingoAssist (ASCII 安全路径名)')
+console.log('  shortcutName: 外语口语学习助手 (中文显示名)')
 
 // ---- 检查环境 ----
 console.log('[1/5] 检查构建环境...')
@@ -90,23 +137,44 @@ console.log('')
 console.log('[5/5] 构建 Windows 安装包...')
 console.log('')
 
-// 生成 .ico 图标
+// 生成 .ico 图标（必须存在，否则 electron-builder 会失败）
+console.log('  生成 Windows 图标 (icon.ico)...')
 const icoScript = 'scripts/png2ico.py'
+let icoGenerated = false
+
+// 优先用 Python 脚本生成
 if (existsSync(icoScript)) {
-  console.log('  生成 Windows 图标 (icon.ico)...')
   try {
     execSync(`python3 ${icoScript} build/icon.png build/icon.ico`, { stdio: 'pipe' })
-    console.log('  ✓ icon.ico 生成成功')
+    icoGenerated = true
+    console.log('  ✓ icon.ico 通过 Python 生成成功')
   } catch {
     try {
       execSync(`python ${icoScript} build/icon.png build/icon.ico`, { stdio: 'pipe' })
-      console.log('  ✓ icon.ico 生成成功')
-    } catch (e) {
-      console.warn('  ⚠ icon.ico 生成失败，将使用 PNG（需手动转换）')
+      icoGenerated = true
+      console.log('  ✓ icon.ico 通过 Python 生成成功')
+    } catch {
+      console.warn('  ⚠ Python 生成 icon.ico 失败，尝试 Node.js 后备方案')
     }
   }
 } else {
-  console.warn('  ⚠ 未找到 png2ico.py 脚本')
+  console.warn('  ⚠ 未找到 png2ico.py，尝试 Node.js 后备方案')
+}
+
+// 后备：Node.js 直接包装 PNG → ICO
+const pngSource = existsSync('build/icon_512.png')
+  ? 'build/icon_512.png'
+  : existsSync('build/icon_256.png')
+    ? 'build/icon_256.png'
+    : 'build/icon.png'
+if (!icoGenerated) {
+  icoGenerated = generateIcoFromPng(pngSource, 'build/icon.ico')
+}
+
+// 最终检查
+if (!icoGenerated || !existsSync('build/icon.ico')) {
+  console.error('  ✗ icon.ico 生成失败，构建终止。请手动放置 build/icon.ico 文件')
+  process.exit(1)
 }
 
 console.log('  (此步骤需要下载 Electron 和 NSIS 工具，耗时较长)')
@@ -119,10 +187,10 @@ const env = {
 }
 
 run('vite build --config vite.config.electron.ts', env)
-run('electron-builder --win --publish never', env)
+run('electron-builder --win --x64 --publish never', env)
 
 console.log('')
 console.log('========================================')
 console.log('  ✓ Windows 构建完成')
-console.log('  安装包位置: dist/')
+console.log('  安装包位置: release/')
 console.log('========================================')

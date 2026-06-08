@@ -28,11 +28,16 @@
     "vite": "^5.1.6",
     "vite-plugin-electron": "^0.28.4",
     "vite-plugin-electron-renderer": "^0.14.5",
-    "vue-tsc": "^2.0.6"
+    "vue-tsc": "^2.0.6",
+    "vitest": "^1.6.0"
   },
   "build": {
     "appId": "com.doulingo.assist",
-    "productName": "外语口语学习助手",
+    "productName": "DoulingoAssist",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
     "files": [
       "dist/index.html",
       "dist/assets/**/*",
@@ -40,7 +45,7 @@
     ],
     "asar": true,
     "asarUnpack": [],
-    "compression": "maximum",
+    "compression": "normal",
     "removePackageScripts": true,
     "electronDownload": {
       "mirror": "https://npmmirror.com/mirrors/electron/"
@@ -58,7 +63,10 @@
     },
     "win": {
       "target": [
-        "nsis"
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
       ],
       "icon": "build/icon.ico",
       "artifactName": "${productName}-Setup-${version}.${ext}"
@@ -70,7 +78,10 @@
       "deleteAppDataOnUninstall": false,
       "language": "2052",
       "installerIcon": "build/icon.ico",
-      "uninstallerIcon": "build/icon.ico"
+      "uninstallerIcon": "build/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "外语口语学习助手"
     },
     "dmg": {
       "format": "ULFO",
