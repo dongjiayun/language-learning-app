@@ -490,6 +490,41 @@ section .section-sub {
   background: rgba(29,155,240,0.14);
   border-color: rgba(29,155,240,0.25);
 }
+.download-card .os-size-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.download-card .os-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 100px;
+  background: rgba(255,204,0,0.12);
+  border: 0.5px solid rgba(255,204,0,0.2);
+  color: #ffcc00;
+}
+.download-card.coming-soon {
+  cursor: default;
+  border-style: dashed;
+  border-color: rgba(255,255,255,0.08);
+  opacity: 0.7;
+}
+.download-card.coming-soon:hover {
+  transform: none;
+  border-color: rgba(255,204,0,0.2);
+  background: rgba(255,204,0,0.02);
+  box-shadow: none;
+}
+.download-card.coming-soon:hover::before { opacity: 0; }
+.download-card .coming-tag {
+  background: rgba(255,204,0,0.10) !important;
+  border-color: rgba(255,204,0,0.15) !important;
+  color: #ffcc00 !important;
+}
 
 /* ===== About / API ===== */
 #about {
@@ -1473,13 +1508,15 @@ footer a:hover { color: #40b0ff; }
       <a href="https://github.com/dongjiayun/language-learning-app/releases/download/v1.9.0/LanguageLearner-1.9.0-arm64.dmg" class="download-card fade-in">
         <span class="os-icon">🍏</span>
         <div class="os-name">macOS</div>
-        <div class="os-sub">macOS 12+ · Intel & Apple Silicon</div>
+        <div class="os-sub">macOS 12+</div>
         <div class="os-features">
-          <span>原生 Apple Silicon 支持</span>
-          <span>系统语音引擎 TTS</span>
-          <span>完美适配深色模式</span>
+          <span>✅ Apple Silicon · 立即下载</span>
+          <span>系统语音引擎 TTS · 深色模式</span>
         </div>
-        <span class="os-size">⬇ 下载 · 92 MB</span>
+        <div class="os-size-row">
+          <span class="os-size">⬇ 下载 · 92 MB</span>
+          <span class="os-badge">Intel 版开发中</span>
+        </div>
       </a>
       <a href="https://github.com/dongjiayun/language-learning-app/releases/download/v1.9.0/LanguageLearner-Setup-1.9.0.exe" class="download-card fade-in">
         <span class="os-icon">🪟</span>
@@ -1492,6 +1529,17 @@ footer a:hover { color: #40b0ff; }
         </div>
         <span class="os-size">⬇ 下载 · 76 MB</span>
       </a>
+      <div class="download-card coming-soon">
+        <span class="os-icon">📱</span>
+        <div class="os-name">Android</div>
+        <div class="os-sub">即将到来 · 适配中</div>
+        <div class="os-features">
+          <span>全新移动端原生体验</span>
+          <span>触控交互优化</span>
+          <span>敬请期待</span>
+        </div>
+        <span class="os-size coming-tag">🚀 开发中</span>
+      </div>
     </div>
   </div>
 </section>
