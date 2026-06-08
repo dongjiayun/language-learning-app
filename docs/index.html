@@ -702,18 +702,100 @@ footer a:hover { color: #40b0ff; }
 }
 @media (max-width: 734px) {
   body { font-size: 16px; }
-  .hero h1 { font-size: 36px; letter-spacing: -1.5px; }
+  section { padding: 60px 16px; }
+  section h2 { font-size: 28px; letter-spacing: -0.8px; }
+  section .section-sub { font-size: 15px; max-width: 100%; }
+
+  /* Nav */
+  nav .inner { padding: 0 16px; }
+  nav .nav-links a:not(.nav-cta) { display: none; }
+  nav .nav-cta { margin-left: 0; font-size: 11px; padding: 6px 12px; }
+
+  /* Hero */
+  .hero { padding: 80px 16px 40px; min-height: 90vh; }
+  .hero h1 { font-size: 32px; letter-spacing: -1px; }
   .hero h1 .line:not(.gradient) { background: #fff; -webkit-text-fill-color: #fff; }
-  section { padding: 72px 16px; }
+  .hero .badge { font-size: 10px; padding: 3px 10px; }
+  .hero p { font-size: 14px; }
+  .hero .hero-actions { flex-direction: column; gap: 10px; width: 100%; }
+  .hero .hero-actions .btn { width: 100%; justify-content: center; padding: 12px 24px; font-size: 14px; }
+  .hero .hero-lang-row { gap: 6px; margin-top: 16px; }
+  .hero .hero-lang-item { font-size: 13px; width: 100%; text-align: center; }
+  .hero .subtitle { margin-top: 32px; }
+
+  /* Scroll indicator */
+  .scroll-indicator { display: none; }
+
+  /* Feature details - mockup */
+   .feature-detail-wrap { margin-bottom: 48px; width: 100%; overflow: hidden; }
+   .mockup-wrap { gap: 20px; margin: 20px 0; flex-direction: column !important; }
+   .mockup-device { flex: 0 0 auto !important; max-width: 100% !important; width: 100% !important; }
+   .mockup-device .screenshot { border-radius: 10px; }
+   .mockup-content h3 { font-size: 20px; }
+   .mockup-content .desc { font-size: 13px; }
+   .mockup-content .feature-list li { font-size: 12px; }
+   .mockup-device .screenshot-label { font-size: 10px; }
+
+  /* Feature grid */
+  .features-grid { border-radius: 16px; }
+  .feature-card { padding: 28px 20px 24px; }
+  .feature-card h3 { font-size: 16px; }
+  .feature-card p { font-size: 13px; }
+
+  /* Grids */
   .features-grid, .how-grid, .api-about-grid { grid-template-columns: 1fr; }
-  .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  .how-grid { gap: 12px; }
+  .how-card { padding: 28px 20px; }
+  .api-about-card { padding: 28px 20px; }
+  .api-about-card h3 { font-size: 16px; }
+  .api-about-card ul { font-size: 13px; }
+
+  /* Stats */
+  .stats-bar { grid-template-columns: repeat(2, 1fr); margin-top: 48px; border-radius: 14px; }
   .stats-bar .stat-item:nth-child(3),
   .stats-bar .stat-item:nth-child(4) { border-top: 0.5px solid rgba(255,255,255,0.04); }
-  nav .nav-links a:not(.nav-cta) { display: none; }
-  nav .nav-cta { margin-left: 0; }
-  .download-card { min-width: 100%; }
-  footer .inner { flex-direction: column; gap: 12px; }
-  .mockup-device { max-width: 100%; }
+  .stat-item { padding: 24px 16px; }
+  .stat-item .num { font-size: 26px; }
+
+  /* Download */
+  .download-card { min-width: 100%; padding: 28px 20px; }
+  .download-card .os-icon { font-size: 32px; }
+  .download-card .os-name { font-size: 18px; }
+  .download-card .os-sub { font-size: 13px; }
+  .download-card .os-features span { font-size: 12px; }
+  .download-card .os-size { font-size: 12px; padding: 6px 16px; }
+
+  /* Section divider */
+  .section-divider { margin: 0; }
+
+  /* About slogan */
+  .about-slogan { padding: 10px 0 32px; }
+  .about-slogan .slogan-sub { font-size: 12px; }
+
+  /* CTA */
+  .cta-section { padding: 60px 16px; }
+  .cta-section .btn { width: 100%; justify-content: center; padding: 14px 24px; font-size: 15px; }
+
+  /* Footer */
+  footer { padding: 32px 16px; }
+  footer .inner { flex-direction: column; gap: 12px; text-align: center; }
+  footer .footer-links { flex-wrap: wrap; justify-content: center; gap: 12px; }
+
+  /* Changelog */
+  .changelog-entry { padding: 16px 18px; font-size: 13px; }
+
+  /* MLGA */
+  .mlga-section { padding: 60px 16px; }
+  .mlga-title { font-size: 28px; }
+  .mlga-sub { font-size: 15px; }
+  .mlga-features .mlga-feature-item { font-size: 13px; }
+  .mlga-art { max-width: 100%; }
+  .mlga-img-slogan { font-size: 18px; }
+
+  /* Lightbox */
+  .lightbox { padding: 16px; }
+  #lightbox-img { max-width: 100vw; max-height: 80vh; }
+  .lightbox-close { top: 10px; right: 14px; font-size: 28px; }
 }
 
 /* ===== Screenshot mockup styles ===== */
