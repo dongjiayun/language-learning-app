@@ -4,278 +4,436 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DoulingoAssist — AI 外语口语学习助手</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --accent: #1d9bf0;
-    --bg: #f7f9fc;
-    --card: #fff;
-    --text: #1a1a2e;
-    --text-muted: #6b7280;
-    --border: #e5e7eb;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  /* ===== Reset & Base ===== */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--bg);
-    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #000;
+    color: #f5f5f7;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  ::selection { background: rgba(29,155,240,0.4); }
+
+  /* ===== Navigation ===== */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    backdrop-filter: blur(20px) saturate(1.5);
+    -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    background: rgba(0,0,0,0.8);
+    border-bottom: 0.5px solid rgba(255,255,255,0.08);
+  }
+  nav .inner {
+    max-width: 980px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 22px; height: 48px;
+  }
+  nav .logo {
+    font-weight: 700; font-size: 16px; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #1d9bf0, #0a84ff);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  nav a {
+    color: rgba(255,255,255,0.7); text-decoration: none;
+    font-size: 12px; font-weight: 500; transition: color 0.2s;
+    padding: 0 16px;
+  }
+  nav a:hover { color: #fff; }
+
+  /* ===== Hero ===== */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+    padding: 80px 24px 60px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 50% 30%, rgba(29,155,240,0.12) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 70%, rgba(10,132,255,0.06) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .hero .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 16px; border-radius: 100px;
+    background: rgba(29,155,240,0.12);
+    border: 0.5px solid rgba(29,155,240,0.25);
+    font-size: 12px; font-weight: 500; color: #40b0ff;
+    margin-bottom: 28px;
+    letter-spacing: 0.3px;
+  }
+  .hero h1 {
+    font-size: clamp(42px, 8vw, 80px);
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 1.05;
+    margin-bottom: 16px;
+    background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.6) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero .gradient-text {
+    background: linear-gradient(135deg, #1d9bf0, #0a84ff, #60b0ff);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero p {
+    font-size: clamp(16px, 2.5vw, 22px);
+    font-weight: 400;
+    color: rgba(255,255,255,0.5);
+    max-width: 600px;
+    line-height: 1.6;
+    margin-bottom: 40px;
+  }
+  .hero-actions {
+    display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;
+    position: relative; z-index: 2;
+  }
+  .hero-actions .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 14px 32px;
+    border-radius: 980px;
+    font-size: 15px; font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    letter-spacing: -0.2px;
+  }
+  .hero-actions .btn.primary {
+    background: #1d9bf0;
+    color: #fff;
+    box-shadow: 0 8px 32px rgba(29,155,240,0.35);
+  }
+  .hero-actions .btn.primary:hover {
+    transform: scale(1.04);
+    box-shadow: 0 12px 40px rgba(29,155,240,0.45);
+  }
+  .hero-actions .btn.secondary {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.85);
+    border: 0.5px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(10px);
+  }
+  .hero-actions .btn.secondary:hover {
+    background: rgba(255,255,255,0.14);
+    transform: scale(1.04);
+  }
+  .hero .subtitle {
+    margin-top: 48px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 0.5px;
+  }
+
+  /* Scroll indicator */
+  .scroll-indicator {
+    position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
+    width: 24px; height: 40px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    opacity: 0.5;
+  }
+  .scroll-indicator::after {
+    content: '';
+    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    width: 3px; height: 8px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 2px;
+    animation: scrollPulse 2s infinite;
+  }
+  @keyframes scrollPulse {
+    0%, 100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+    50% { transform: translateX(-50%) translateY(8px); opacity: 0.3; }
+  }
+
+  /* ===== Sections ===== */
+  section { padding: 100px 24px; }
+  section .inner { max-width: 980px; margin: 0 auto; }
+  section h2 {
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  section .section-sub {
+    font-size: clamp(16px, 2vw, 20px);
+    color: rgba(255,255,255,0.4);
+    text-align: center;
+    max-width: 560px;
+    margin: 0 auto 60px;
     line-height: 1.6;
   }
-  .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
 
-  /* Header */
-  header {
-    text-align: center;
-    padding: 64px 0 48px;
-  }
-  header h1 {
-    font-size: 36px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-  }
-  header h1 span { color: var(--accent); }
-  header p {
-    margin-top: 12px;
-    font-size: 18px;
-    color: var(--text-muted);
-    max-width: 520px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  /* Download buttons */
-  .downloads {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    justify-content: center;
-    margin-bottom: 48px;
-  }
-  .download-btn {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px 28px;
-    border-radius: 12px;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 15px;
-    transition: all 0.2s;
-    min-width: 220px;
-  }
-  .download-btn .icon { font-size: 24px; }
-  .download-btn .info { display: flex; flex-direction: column; gap: 2px; }
-  .download-btn .sub { font-size: 12px; font-weight: 400; opacity: 0.75; }
-  .download-btn.primary {
-    background: var(--accent);
-    color: #fff;
-    box-shadow: 0 4px 12px rgba(29,155,240,0.3);
-  }
-  .download-btn.primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(29,155,240,0.4);
-  }
-  .download-btn.secondary {
-    background: var(--card);
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
-  .download-btn.secondary:hover {
-    border-color: var(--accent);
-    background: #f0f7ff;
-    transform: translateY(-2px);
-  }
-
-  /* Features */
-  .features {
-    padding-bottom: 48px;
-  }
-  .features h2 {
-    font-size: 22px;
-    font-weight: 700;
-    margin-bottom: 24px;
-    text-align: center;
-  }
-  .grid {
+  /* ===== Features Grid ===== */
+  .features-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 20px;
+    overflow: hidden;
+    border: 0.5px solid rgba(255,255,255,0.06);
   }
   .feature-card {
-    background: var(--card);
-    border: 1px solid var(--border);
+    background: #0a0a0c;
+    padding: 36px 28px 32px;
+    transition: background 0.3s;
+    position: relative;
+  }
+  .feature-card:hover { background: #111115; }
+  .feature-card .icon-wrap {
+    width: 44px; height: 44px;
     border-radius: 12px;
-    padding: 20px;
-  }
-  .feature-card .emoji { font-size: 28px; margin-bottom: 8px; display: block; }
-  .feature-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-  .feature-card p { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
-
-  /* Screenshot */
-  .screenshot {
-    text-align: center;
-    padding-bottom: 48px;
-  }
-  .screenshot img {
-    max-width: 100%;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
-  }
-
-  /* Changelog */
-  .changelog {
-    padding-bottom: 48px;
-  }
-  .changelog h2 {
-    font-size: 22px;
-    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
     margin-bottom: 16px;
+    background: linear-gradient(135deg, rgba(29,155,240,0.15), rgba(10,132,255,0.08));
+    border: 0.5px solid rgba(29,155,240,0.15);
   }
-  .changelog .entry {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px 20px;
+  .feature-card h3 {
+    font-size: 17px; font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: -0.2px;
+  }
+  .feature-card p {
+    font-size: 13px; line-height: 1.6;
+    color: rgba(255,255,255,0.45);
+  }
+
+  /* ===== Download ===== */
+  .download-section {
+    text-align: center;
+    background: linear-gradient(180deg, transparent 0%, rgba(29,155,240,0.04) 100%);
+  }
+  .download-cards {
+    display: flex; flex-wrap: wrap; gap: 16px; justify-content: center;
+    margin-top: 40px;
+  }
+  .download-card {
+    flex: 1; min-width: 260px; max-width: 360px;
+    background: rgba(255,255,255,0.04);
+    border: 0.5px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 32px 28px;
+    text-align: left;
+    transition: all 0.3s;
+    text-decoration: none;
+    color: #f5f5f7;
+  }
+  .download-card:hover {
+    background: rgba(255,255,255,0.08);
+    transform: translateY(-4px);
+    border-color: rgba(29,155,240,0.3);
+  }
+  .download-card .os-icon { font-size: 36px; margin-bottom: 12px; }
+  .download-card .os-name { font-size: 18px; font-weight: 700; margin-bottom: 2px; }
+  .download-card .os-sub { font-size: 13px; color: rgba(255,255,255,0.35); margin-bottom: 20px; }
+  .download-card .os-size {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; color: #40b0ff;
+    padding: 6px 14px; border-radius: 100px;
+    background: rgba(29,155,240,0.1);
+    border: 0.5px solid rgba(29,155,240,0.15);
+  }
+
+  /* ===== Changelog ===== */
+  .changelog-entry {
+    background: rgba(255,255,255,0.03);
+    border: 0.5px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 20px 24px;
     font-size: 13px;
   }
-  .changelog .entry .tag {
-    display: inline-block;
-    background: var(--accent);
-    color: #fff;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 4px;
-    margin-right: 8px;
+  .changelog-entry .version {
+    display: inline-flex; align-items: center; gap: 10px;
+    margin-bottom: 8px;
   }
-  .changelog .entry .date { color: var(--text-muted); font-size: 12px; }
-  .changelog .entry ul { margin-top: 8px; padding-left: 18px; color: var(--text-muted); }
-  .changelog .entry ul li { margin-bottom: 2px; }
+  .changelog-entry .tag {
+    display: inline-block;
+    background: #1d9bf0; color: #fff;
+    font-size: 12px; font-weight: 700;
+    padding: 3px 10px; border-radius: 6px;
+  }
+  .changelog-entry .date { font-size: 13px; color: rgba(255,255,255,0.35); }
+  .changelog-entry ul { padding-left: 18px; color: rgba(255,255,255,0.5); }
+  .changelog-entry ul li { margin-bottom: 3px; }
+  .changelog-link {
+    display: block; margin-top: 12px;
+    font-size: 13px; color: #40b0ff; text-decoration: none;
+    font-weight: 500;
+  }
+  .changelog-link:hover { text-decoration: underline; }
 
-  /* Footer */
+  /* ===== Footer ===== */
   footer {
     text-align: center;
-    padding: 32px 0;
-    border-top: 1px solid var(--border);
-    color: var(--text-muted);
-    font-size: 13px;
+    padding: 32px 24px 48px;
+    border-top: 0.5px solid rgba(255,255,255,0.06);
+    font-size: 12px;
+    color: rgba(255,255,255,0.25);
   }
-  footer a { color: var(--accent); text-decoration: none; }
+  footer a { color: rgba(255,255,255,0.4); text-decoration: none; transition: color 0.2s; }
+  footer a:hover { color: #40b0ff; }
 
-  @media (max-width: 600px) {
-    header h1 { font-size: 28px; }
-    .download-btn { min-width: 0; width: 100%; justify-content: center; }
+  /* ===== Animations ===== */
+  .fade-in {
+    opacity: 0; transform: translateY(30px);
+    transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 734px) {
+    .hero h1 { font-size: 38px; letter-spacing: -1px; }
+    section { padding: 60px 16px; }
+    .features-grid { grid-template-columns: 1fr; }
+    nav .nav-links { display: none; }
+    .download-card { min-width: 100%; }
   }
 </style>
 </head>
 <body>
 
-<div class="container">
-  <!-- Header -->
-  <header>
-    <h1>Doulingo<span>Assist</span></h1>
-    <p>AI 驱动的多语种口语学习助手。支持语音识别、AI 对话、词汇训练、写作辅导。</p>
-  </header>
-
-  <!-- Downloads -->
-  <div class="downloads">
-    <a href="../release/DoulingoAssist-1.8.8-arm64.dmg" class="download-btn primary">
-      <span class="icon">🍏</span>
-      <span class="info">
-        <span>macOS 下载</span>
-        <span class="sub">Intel & Apple Silicon · 92 MB</span>
-      </span>
-    </a>
-    <a href="../release/DoulingoAssist-Setup-1.8.8.exe" class="download-btn secondary">
-      <span class="icon">🪟</span>
-      <span class="info">
-        <span>Windows 下载</span>
-        <span class="sub">Windows 10/11 · 76 MB</span>
-      </span>
-    </a>
+<!-- Navigation -->
+<nav>
+  <div class="inner">
+    <span class="logo">DoulingoAssist</span>
+    <div class="nav-links">
+      <a href="#features">功能</a>
+      <a href="#download">下载</a>
+      <a href="#changelog">更新</a>
+      <a href="https://github.com/dongjiayun/language-learning-app" target="_blank">GitHub</a>
+    </div>
   </div>
+</nav>
 
-  <!-- Features -->
-  <section class="features">
-    <h2>功能特性</h2>
-    <div class="grid">
-      <div class="feature-card">
-        <span class="emoji">🎙️</span>
+<!-- Hero -->
+<section class="hero">
+  <div class="badge">✨ v1.8.8 · 已支持 macOS & Windows</div>
+  <h1>
+    用 AI 打破<br>
+    <span class="gradient-text">语言壁垒</span>
+  </h1>
+  <p>多语种口语练习 · 实时语音识别 · AI 对话 · 词汇训练 · 写作辅导<br>你的全能外语学习伴侣</p>
+  <div class="hero-actions">
+    <a href="#download" class="btn primary">免费下载</a>
+    <a href="#features" class="btn secondary">了解更多</a>
+  </div>
+  <div class="subtitle">支持法语 · 英语 · 日语 · 中文</div>
+  <div class="scroll-indicator"></div>
+</section>
+
+<!-- Features -->
+<section id="features">
+  <div class="inner">
+    <h2>强大功能。<br>简单体验。</h2>
+    <p class="section-sub">每一个功能都为语言学习者精心设计，让练习变得自然高效。</p>
+    <div class="features-grid">
+      <div class="feature-card fade-in">
+        <div class="icon-wrap">🎙️</div>
         <h3>语音识别</h3>
-        <p>讯飞语音引擎实时识别你的发音，精准转写为文字。</p>
+        <p>讯飞语音引擎实时识别你的发音，精准转写，即时反馈。</p>
       </div>
-      <div class="feature-card">
-        <span class="emoji">🤖</span>
+      <div class="feature-card fade-in">
+        <div class="icon-wrap">🤖</div>
         <h3>AI 对话</h3>
-        <p>与 DeepSeek AI 进行多轮对话，自然提升语感。</p>
+        <p>基于 DeepSeek 的多轮对话，贴合语境的学习提示，自然提升语感。</p>
       </div>
-      <div class="feature-card">
-        <span class="emoji">🗣️</span>
+      <div class="feature-card fade-in">
+        <div class="icon-wrap">🗣️</div>
         <h3>口语练习</h3>
-        <p>AI 引导话题、实时录音识别、自动朗读反馈，像真人对话一样练习。</p>
+        <p>AI 主动引导话题，实时录音识别，自动朗读反馈，像真人对话一样自然。</p>
       </div>
-      <div class="feature-card">
-        <span class="emoji">📖</span>
+      <div class="feature-card fade-in">
+        <div class="icon-wrap">📖</div>
         <h3>词汇训练</h3>
-        <p>分级评估词汇水平，智能生成词汇期刊，巩固记忆。</p>
+        <p>分级评估词汇水平，智能生成词汇期刊，生词本一键收藏。</p>
       </div>
-      <div class="feature-card">
-        <span class="emoji">✍️</span>
+      <div class="feature-card fade-in">
+        <div class="icon-wrap">✍️</div>
         <h3>写作辅导</h3>
-        <p>AI 提供续写建议和语法批改评分，提升写作能力。</p>
+        <p>AI 提供续写建议，语法批改评分，逐句优化提升写作能力。</p>
       </div>
-      <div class="feature-card">
-        <span class="emoji">💪</span>
+      <div class="feature-card fade-in">
+        <div class="icon-wrap">💪</div>
         <h3>强化训练</h3>
-        <p>根据词汇水平生成阅读理解题，精读文章逐题解析。</p>
-      </div>
-      <div class="feature-card">
-        <span class="emoji">🌐</span>
-        <h3>多语种支持</h3>
-        <p>支持法语、英语、日语、中文学习，自由切换目标语言。</p>
-      </div>
-      <div class="feature-card">
-        <span class="emoji">📊</span>
-        <h3>学习统计</h3>
-        <p>追踪学习进度、API 用量统计，数据可导入导出迁移。</p>
+        <p>根据词汇水平生成阅读理解题，精读文章逐题解析，稳步提升。</p>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- Screenshot placeholder -->
-  <section class="screenshot">
-    <h2 style="font-size:22px;font-weight:700;margin-bottom:16px;">应用截图</h2>
-    <p style="color:var(--text-muted);font-size:14px;margin-bottom:16px;">（截图预览 — 可替换为实际截图）</p>
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:60px 20px;color:var(--text-muted);text-align:center;font-size:14px;">
-      🖼️ 截图占位 — 将实际应用截图放入 <code>docs/screenshots/</code> 并更新此处
+<!-- Download -->
+<section id="download" class="download-section">
+  <div class="inner">
+    <h2>立即开始学习</h2>
+    <p class="section-sub">免费开源，选择你的平台下载安装。</p>
+    <div class="download-cards">
+      <a href="../release/DoulingoAssist-1.8.8-arm64.dmg" class="download-card fade-in">
+        <div class="os-icon">🍏</div>
+        <div class="os-name">macOS</div>
+        <div class="os-sub">macOS 12+ · Intel & Apple Silicon</div>
+        <span class="os-size">⬇ 下载 · 92 MB</span>
+      </a>
+      <a href="../release/DoulingoAssist-Setup-1.8.8.exe" class="download-card fade-in">
+        <div class="os-icon">🪟</div>
+        <div class="os-name">Windows</div>
+        <div class="os-sub">Windows 10/11 · 64-bit</div>
+        <span class="os-size">⬇ 下载 · 76 MB</span>
+      </a>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- Changelog -->
-  <section class="changelog">
+<!-- Changelog -->
+<section id="changelog">
+  <div class="inner">
     <h2>更新日志</h2>
-    <div class="entry">
-      <span class="tag">v1.8.8</span>
-      <span class="date">2026-06-08</span>
+    <p class="section-sub">持续迭代，不断进化。</p>
+    <div class="changelog-entry fade-in">
+      <div class="version">
+        <span class="tag">v1.8.8</span>
+        <span class="date">2026年6月8日</span>
+      </div>
       <ul>
         <li>优化提示逻辑：聊天提示给出回答例句、写作提示直接给出下一句</li>
       </ul>
     </div>
-    <div style="margin-top:8px;text-align:right;">
-      <a href="https://github.com/dongjiayun/language-learning-app/blob/main/CHANGELOG.md" style="color:var(--accent);font-size:13px;text-decoration:none;">查看完整更新日志 →</a>
-    </div>
-  </section>
-</div>
+    <a href="https://github.com/dongjiayun/language-learning-app/blob/main/CHANGELOG.md" class="changelog-link">查看完整更新日志 →</a>
+  </div>
+</section>
 
 <!-- Footer -->
 <footer>
-  <div class="container">
+  <div class="inner">
     <p>
       <a href="https://github.com/dongjiayun/language-learning-app">GitHub 仓库</a>
-      &nbsp;·&nbsp; 开源项目 · MIT License
+      &nbsp;·&nbsp; 开源项目 &nbsp;·&nbsp; MIT License
     </p>
   </div>
 </footer>
+
+<!-- Scroll animation -->
+<script>
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible')
+    }
+  })
+}, { threshold: 0.15 })
+
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el))
+</script>
 
 </body>
 </html>
