@@ -960,6 +960,49 @@ footer a:hover { color: #40b0ff; }
   .mlga-art { max-width: 100%; }
   .mlga-features .mlga-feature-item { font-size: 13px; }
 }
+
+/* ===== Lightbox ===== */
+.lightbox {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+.lightbox.active {
+  display: flex;
+}
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 28px;
+  font-size: 36px;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  transition: color 0.2s;
+  line-height: 1;
+  z-index: 2;
+}
+.lightbox-close:hover {
+  color: #fff;
+}
+#lightbox-img {
+  max-width: 90vw;
+  max-height: 90vh;
+  border-radius: 8px;
+  box-shadow: 0 20px 80px rgba(0,0,0,0.6);
+  object-fit: contain;
+}
+@media (max-width: 734px) {
+  .lightbox { padding: 20px; }
+  #lightbox-img { max-width: 100vw; max-height: 85vh; }
+  .lightbox-close { top: 12px; right: 16px; font-size: 28px; }
+}
 </style>
 </head>
 <body>
@@ -970,8 +1013,8 @@ footer a:hover { color: #40b0ff; }
     <span class="logo">LanguageLearner</span>
     <div class="nav-links">
       <a href="#features">功能</a>
-      <a href="#how-it-works">原理</a>
-      <a href="#about">技术</a>
+      <a href="#how-it-works">指引</a>
+      <a href="#about">大模型</a>
       <a href="#changelog">更新</a>
       <a href="https://github.com/dongjiayun/language-learning-app" target="_blank">GitHub</a>
       <a href="#download" class="nav-cta">免费下载</a>
@@ -1195,8 +1238,8 @@ footer a:hover { color: #40b0ff; }
         <div class="label">百万 Token · DeepSeek 成本</div>
       </div>
       <div class="stat-item">
-        <div class="num">1/27</div>
-        <div class="label">vs GPT-4o 算力成本</div>
+        <div class="num">3</div>
+        <div class="label">智能提示模式 · 对话 & 写作</div>
       </div>
     </div>
   </div>
@@ -1250,7 +1293,7 @@ footer a:hover { color: #40b0ff; }
 <!-- How it works -->
 <section id="how-it-works">
   <div class="inner">
-    <div class="section-label">工作原理</div>
+    <div class="section-label">新手指引</div>
     <h2 style="text-align:center;">三步上手，<br>轻松学习。</h2>
     <p class="section-sub" style="text-align:center; margin: 12px auto 0;">从配置到练习，只需简单三步即可开始你的语言学习之旅。</p>
     <div class="how-grid">
@@ -1278,7 +1321,7 @@ footer a:hover { color: #40b0ff; }
 <!-- About / API -->
 <section id="about">
   <div class="inner">
-    <div class="section-label">技术架构</div>
+    <div class="section-label">大模型</div>
     <div class="about-slogan">
       <div class="slogan">外语好啊，外语得学</div>
       <div class="slogan-sub">独立开发者 × AI 大模型，构建你的专属语言教练</div>
@@ -1430,6 +1473,12 @@ footer a:hover { color: #40b0ff; }
 </footer>
 
 <!-- Scroll animation -->
+<!-- Lightbox -->
+<div id="lightbox" class="lightbox">
+  <span class="lightbox-close">&times;</span>
+  <img id="lightbox-img" src="" alt="" />
+</div>
+
 <script>
 // IntersectionObserver for scroll animations
 const observer = new IntersectionObserver((entries) => {
@@ -1454,6 +1503,31 @@ window.addEventListener('scroll', () => {
   }
   lastScroll = currentScroll
 }, { passive: true })
+
+// Lightbox for screenshots
+document.querySelectorAll('.screenshot').forEach(img => {
+  img.style.cursor = 'zoom-in'
+  img.addEventListener('click', () => {
+    const overlay = document.getElementById('lightbox')
+    const fullImg = document.getElementById('lightbox-img')
+    fullImg.src = img.src
+    fullImg.alt = img.alt
+    overlay.classList.add('active')
+    document.body.style.overflow = 'hidden'
+  })
+})
+document.getElementById('lightbox').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget || e.target.classList.contains('lightbox-close')) {
+    e.currentTarget.classList.remove('active')
+    document.body.style.overflow = ''
+  }
+})
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.getElementById('lightbox').classList.remove('active')
+    document.body.style.overflow = ''
+  }
+})
 </script>
 
 </body>
