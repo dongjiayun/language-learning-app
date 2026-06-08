@@ -1,6 +1,6 @@
 {
   "name": "doulingo-assist",
-  "version": "1.8.7",
+  "version": "1.8.8",
   "description": "外语口语学习助手 - Foreign Language Speaking Assistant",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -65,7 +65,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "build/icon.ico",
