@@ -48,4 +48,38 @@ interface SpeechRecognitionErrorEvent extends Event {
 interface Window {
   SpeechRecognition: new () => SpeechRecognition
   webkitSpeechRecognition: new () => SpeechRecognition
+  electronAPI?: {
+    platform: string
+    bufferToBase64: (buffer: ArrayBuffer) => string
+    speechStart: () => Promise<any>
+    speechStop: () => Promise<any>
+    speechIsListening: () => Promise<{ listening: boolean }>
+    ttsSpeak: (params: { text: string; lang: string }) => Promise<any>
+    ttsStop: () => Promise<any>
+    diagnosticCheck: () => Promise<any>
+    recognizeAudioBlob: (params: {
+      audioBase64: string
+      blobMimeType: string
+      lang: string
+      appId: string
+      apiKey: string
+      apiSecret: string
+    }) => Promise<any>
+    xfyunAsrRecognize: (params: {
+      audioBase64: string
+      audioLen: number
+      lang: string
+      appId: string
+      apiKey: string
+      apiSecret: string
+    }) => Promise<any>
+    checkUpdate: () => Promise<{
+      success: boolean
+      isLatest?: boolean
+      currentVersion?: string
+      latestVersion?: string
+      downloadUrl?: string
+      error?: string
+    }>
+  }
 }

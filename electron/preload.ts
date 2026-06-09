@@ -46,4 +46,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     apiKey: string
     apiSecret: string
   }) => ipcRenderer.invoke('xfyun-asr-recognize', params),
+
+  // 检查更新
+  checkUpdate: () => ipcRenderer.invoke('check-update'),
 })

@@ -3,6 +3,7 @@ import { join } from 'path'
 import { spawn, execSync } from 'child_process'
 import { readFileSync, unlinkSync, existsSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
+import https from 'https'
 import crypto from 'crypto'
 // @ts-ignore - ws 没有类型声明
 import WebSocket from 'ws'
@@ -690,6 +691,38 @@ ipcMain.handle('xfyun-asr-recognize', async (_, params: {
     return { success: true, text }
   } catch (err: any) {
     console.error('[XfyunASR] 错误:', err.message)
+    return { success: false, error: err.message }
+  }
+})
+
+// ===== 检查更新 =====
+ipcMain.handle('check-update', async () => {
+  try {
+    const currentVersion = app.getVersion()
+    const { version: latestVersion, html_url } = await new Promise<any>((resolve, reject) => {
+      https.get('https://api.github.com/repos/dongjiayun/language-learning-app/releases/latest', {
+        headers: { 'User-Agent': 'LanguageLearner-App' },
+      }, (res) => {
+        let data = ''
+        res.on('data', (chunk) => { data += chunk })
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data)
+            resolve({ version: json.tag_name?.replace(/^v/, ''), html_url: json.html_url })
+          } catch { reject(new Error('解析响应失败')) }
+        })
+      }).on('error', reject)
+    })
+
+    const isLatest = currentVersion === latestVersion
+    return {
+      success: true,
+      isLatest,
+      currentVersion,
+      latestVersion,
+      downloadUrl: html_url || `https://github.com/dongjiayun/language-learning-app/releases/tag/v${latestVersion}`,
+    }
+  } catch (err: any) {
     return { success: false, error: err.message }
   }
 })

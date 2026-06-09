@@ -114,6 +114,27 @@ const selectedTargetLang = ref(store.targetLang)
 const selectedAnnotateLang = ref(store.annotateLang)
 const showChangelog = ref(false)
 
+// ===== 检查更新 =====
+const updating = ref(false)
+const updateResult = ref<{ isLatest: boolean; latestVersion?: string; downloadUrl?: string; error?: string } | null>(null)
+
+async function checkUpdate() {
+  if (!window.electronAPI?.checkUpdate) {
+    updateResult.value = { isLatest: false, error: '仅 Electron 环境可用' }
+    return
+  }
+  updating.value = true
+  updateResult.value = null
+  try {
+    const res = await window.electronAPI.checkUpdate()
+    updateResult.value = res
+  } catch (err: any) {
+    updateResult.value = { isLatest: false, error: err.message }
+  } finally {
+    updating.value = false
+  }
+}
+
 // ===== 关于弹出 =====
 const showAbout = ref(false)
 
@@ -482,6 +503,19 @@ function onProficiencyChange(lang: string) {
             <div class="version-row">
               <span class="version-label">当前版本</span>
               <span class="version-number">v{{ version }}</span>
+            </div>
+            <button class="changelog-toggle" @click="checkUpdate" :disabled="updating">
+              <svg v-if="updating" class="spinning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              {{ updating ? '检查中…' : '检查更新' }}
+            </button>
+            <div v-if="updateResult" class="update-result" :class="{ success: updateResult.isLatest, warn: !updateResult.isLatest && !updateResult.error, err: !!updateResult.error }">
+              <template v-if="updateResult.error">{{ updateResult.error }}</template>
+              <template v-else-if="updateResult.isLatest">✓ 已是最新版本</template>
+              <template v-else>
+                ✦ 发现新版本 v{{ updateResult.latestVersion }}
+                <a :href="updateResult.downloadUrl" target="_blank" class="update-link">去下载 →</a>
+              </template>
             </div>
             <button class="changelog-toggle" @click="showChangelog = !showChangelog">
               <svg :class="{ rotated: showChangelog }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -1209,7 +1243,12 @@ function onProficiencyChange(lang: string) {
   width: 100%;
 }
 
-.changelog-toggle:hover {
+.changelog-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.changelog-toggle:hover:not(:disabled) {
   background: var(--bg-hover);
   color: var(--text-primary);
 }
@@ -1220,6 +1259,52 @@ function onProficiencyChange(lang: string) {
 
 .changelog-toggle svg.rotated {
   transform: rotate(180deg);
+}
+
+.changelog-toggle svg.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.update-result {
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.update-result.success {
+  background: rgba(48,209,88,0.08);
+  border: 0.5px solid rgba(48,209,88,0.15);
+  color: #30d158;
+}
+
+.update-result.warn {
+  background: rgba(255,159,10,0.08);
+  border: 0.5px solid rgba(255,159,10,0.15);
+  color: #ff9f0a;
+}
+
+.update-result.err {
+  background: rgba(255,69,58,0.08);
+  border: 0.5px solid rgba(255,69,58,0.15);
+  color: #ff453a;
+}
+
+.update-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.update-link:hover {
+  text-decoration: underline;
 }
 
 .changelog-wrap {
