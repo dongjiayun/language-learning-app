@@ -506,6 +506,27 @@ section .section-sub {
   border: 0.5px solid rgba(255,204,0,0.2);
   color: #ffcc00;
 }
+.os-tip {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255,204,0,0.06);
+  border: 0.5px solid rgba(255,204,0,0.12);
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.7);
+}
+.os-tip-cmd {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.3);
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 13px;
+  color: #ffcc00;
+  word-break: break-all;
+  user-select: all;
+}
 .download-card.coming-soon {
   cursor: default;
   border-style: dashed;
@@ -1393,7 +1414,7 @@ footer a:hover { color: #40b0ff; }
           </div>
           <div class="mlga-feature-item">
             <span class="mlga-feature-icon" style="background:rgba(191,90,242,0.15);color:#bf5af2;">✓</span>
-            <span><strong style="color:#fff;">每日仅需 ¥0.5</strong> — DeepSeek API 极致性价比，人人用得起的 AI 教练</span>
+            <span><strong style="color:#fff;">百万 Token 仅需 ¥0.5</strong> — DeepSeek API 极致性价比，人人用得起的 AI 教练</span>
           </div>
         </div>
       </div>
@@ -1508,13 +1529,17 @@ footer a:hover { color: #40b0ff; }
         <div class="os-name">macOS</div>
         <div class="os-sub">macOS 12+</div>
         <div class="os-features">
-          <span>✅ Apple Silicon · 立即下载</span>
+          <span>✅ Apple Silicon</span>
           <span>系统语音引擎 TTS · 深色模式</span>
-          <span>Intel 版本正在适配中</span>
+          <span>Intel 版适配中</span>
         </div>
         <div class="os-size-row">
-          <a href="https://github.com/dongjiayun/language-learning-app/releases/download/v1.9.0/LanguageLearner-1.9.0-arm64.dmg" class="os-size">⬇ 下载 · 92 MB</a>
+          <a href="https://github.com/dongjiayun/language-learning-app/releases/download/v1.9.0/LanguageLearner-1.9.0-arm64.dmg" class="os-size">⬇ Apple Silicon · 92 MB</a>
           <span class="os-badge">Intel 版开发中</span>
+        </div>
+        <div class="os-tip">
+          ⚠️ 打开提示"程序已损坏"？打开终端（Terminal），粘贴以下命令，<strong>拖入程序</strong>，按回车执行：
+          <div class="os-tip-cmd">sudo xattr -rd com.apple.quarantine</div>
         </div>
       </div>
       <a href="https://github.com/dongjiayun/language-learning-app/releases/download/v1.9.0/LanguageLearner-Setup-1.9.0.exe" class="download-card fade-in">
