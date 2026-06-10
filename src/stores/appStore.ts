@@ -7,6 +7,7 @@ import { ChatService } from '@/services/ChatService'
 import { VocabTrainingService } from '@/services/VocabTrainingService'
 import { TextToSpeechService } from '@/services/TextToSpeechService'
 import { SpeechRecognitionService } from '@/services/SpeechRecognitionService'
+import { platformBridge } from '@/services/PlatformBridge'
 import { isTextEqual } from '@/utils/textNormalization'
 
 const STORAGE_KEY_API = 'doulingo_deepseek_api_key'

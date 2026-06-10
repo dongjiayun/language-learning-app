@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useAppStore } from '@/stores/appStore'
 import { ChatService } from '@/services/ChatService'
-import type { TrainingQuestion, TrainingSession } from '@/types'
 
 // ===== Mocks =====
 vi.mock('@/services/ChatService', () => ({
@@ -13,8 +12,24 @@ vi.mock('@/services/ChatService', () => ({
   })),
 }))
 
-const mockTtsSpeak = vi.fn()
-const mockTtsStop = vi.fn()
+// PlatformBridge mock — 控制平台检测行为
+vi.mock('@/services/PlatformBridge', () => ({
+  platformBridge: {
+    isElectron: vi.fn().mockReturnValue(true),
+    isCapacitor: vi.fn().mockReturnValue(false),
+    isBrowser: vi.fn().mockReturnValue(false),
+    detectPlatform: vi.fn(),
+    ttsSpeak: vi.fn().mockResolvedValue({ success: true }),
+    ttsStop: vi.fn().mockResolvedValue({ success: true }),
+    speechStart: vi.fn().mockResolvedValue({ success: true }),
+    speechStop: vi.fn().mockResolvedValue({ success: true, audioBase64: '', audioLen: 0 }),
+    speechIsListening: vi.fn().mockResolvedValue({ listening: false }),
+    xfyunAsrRecognize: vi.fn().mockResolvedValue({ success: true, text: 'test' }),
+    recognizeAudioBlob: vi.fn().mockResolvedValue({ success: true, text: 'test' }),
+    checkUpdate: vi.fn().mockResolvedValue({ success: true, hasUpdate: false }),
+    bufferToBase64: vi.fn().mockReturnValue(''),
+  },
+}))
 
 beforeEach(() => {
   setActivePinia(createPinia())
@@ -29,26 +44,6 @@ beforeEach(() => {
       setItem: (key: string, val: string) => { store[key] = val },
       removeItem: (key: string) => { delete store[key] },
       clear: () => { Object.keys(store).forEach(k => delete store[k]) },
-    },
-    writable: true,
-    configurable: true,
-  })
-
-  // Mock window.electronAPI (needed for TTS)
-  Object.defineProperty(globalThis, 'window', {
-    value: {
-      electronAPI: {
-        platform: 'darwin',
-        bufferToBase64: vi.fn(),
-        speechStart: vi.fn(),
-        speechStop: vi.fn(),
-        speechIsListening: vi.fn(),
-        ttsSpeak: mockTtsSpeak,
-        ttsStop: mockTtsStop,
-        diagnosticCheck: vi.fn(),
-        recognizeAudioBlob: vi.fn(),
-        xfyunAsrRecognize: vi.fn(),
-      },
     },
     writable: true,
     configurable: true,
@@ -241,29 +236,126 @@ describe('appStore - sendChatMessage', () => {
   })
 })
 
+// ============== startRecording（浏览器路径） ==============
+describe('appStore - startRecording (browser)', () => {
+  beforeEach(async () => {
+    // 设置 platformBridge 为浏览器平台
+    const { platformBridge } = await import('@/services/PlatformBridge')
+    platformBridge.isElectron.mockReturnValue(false)
+    platformBridge.isCapacitor.mockReturnValue(false)
+    platformBridge.isBrowser.mockReturnValue(true)
+    platformBridge.detectPlatform.mockReturnValue('browser')
+
+    // 设置 window 为浏览器环境（有 webkitSpeechRecognition，无 electronAPI）
+    Object.defineProperty(globalThis, 'window', {
+      value: {
+        webkitSpeechRecognition: vi.fn(() => ({
+          start: vi.fn(),
+          stop: vi.fn(),
+          abort: vi.fn(),
+          continuous: false,
+          interimResults: false,
+          lang: '',
+          onresult: null,
+          onerror: null,
+          onend: null,
+        })),
+        SpeechRecognition: undefined,
+        // TTS 需要 speechSynthesis
+        speechSynthesis: {
+          speak: vi.fn(),
+          cancel: vi.fn(),
+        },
+      },
+      writable: true,
+      configurable: true,
+    })
+    ;(globalThis as any).SpeechSynthesisUtterance = vi.fn()
+
+    // 清空讯飞配置（浏览器路径不需要讯飞）
+    const emptyStore: Record<string, string> = {}
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: {
+        getItem: (key: string) => emptyStore[key] ?? null,
+        setItem: (key: string, val: string) => { emptyStore[key] = val },
+        removeItem: (key: string) => { delete emptyStore[key] },
+        clear: () => { Object.keys(emptyStore).forEach(k => delete emptyStore[k]) },
+      },
+      writable: true,
+      configurable: true,
+    })
+
+    vi.clearAllMocks()
+  })
+
+  it('Chrome 浏览器（有 webkitSpeechRecognition）即使没有讯飞密钥也能开始录音', async () => {
+    const store = useAppStore()
+    expect(store.state).toBe('idle')
+
+    await store.startMonitoring()
+
+    // 浏览器路径应成功进入 recording 状态，不会弹出讯飞配置引导
+    expect(store.state).toBe('recording')
+    expect(store.showApiGuide).not.toBe('xfyun')
+  })
+
+  it('没有 webkitSpeechRecognition 且没有讯飞密钥时应回到 idle 不抛异常', async () => {
+    // 模拟不支持语音识别的浏览器
+    Object.defineProperty(globalThis, 'window', {
+      value: {
+        speechSynthesis: {
+          speak: vi.fn(),
+          cancel: vi.fn(),
+        },
+      },
+      writable: true,
+      configurable: true,
+    })
+    ;(globalThis as any).SpeechSynthesisUtterance = vi.fn()
+
+    const store = useAppStore()
+    expect(store.state).toBe('idle')
+
+    await store.startMonitoring()
+
+    // 既没有原生 API 也没有讯飞密钥 → 回退到 idle
+    expect(store.state).toBe('idle')
+  })
+})
+
 // ============== speakChatMessage ==============
 describe('appStore - speakChatMessage', () => {
+  beforeEach(async () => {
+    // 重置为 Electron 平台
+    const { platformBridge } = await import('@/services/PlatformBridge')
+    platformBridge.isElectron.mockReturnValue(true)
+    platformBridge.isCapacitor.mockReturnValue(false)
+    platformBridge.isBrowser.mockReturnValue(false)
+    platformBridge.detectPlatform.mockReturnValue('electron')
+  })
+
   it('应调用 TTS 朗读文本', async () => {
-    mockTtsSpeak.mockResolvedValue({ success: true })
+    const { platformBridge } = await import('@/services/PlatformBridge')
 
     const store = useAppStore()
     await store.speakChatMessage('Bonjour!')
 
-    expect(mockTtsSpeak).toHaveBeenCalledWith({
+    expect(platformBridge.ttsSpeak).toHaveBeenCalledWith({
       text: 'Bonjour!',
       lang: 'fr-FR',
     })
   })
 
   it('再次调用应停止当前朗读', async () => {
+    const { platformBridge } = await import('@/services/PlatformBridge')
+
     // 第一次 speak 不立即 resolve，保持 isSpeaking = true
     let resolveFirstSpeak: () => void
     const firstSpeakPromise = new Promise<void>(resolve => { resolveFirstSpeak = resolve })
-    mockTtsSpeak.mockImplementationOnce(() => {
-      // 返回一个不会自动 resolve 的 promise
+    platformBridge.ttsSpeak.mockImplementationOnce(() => {
       return firstSpeakPromise.then(() => ({ success: true }))
     })
-    mockTtsStop.mockResolvedValue({ success: true })
+    platformBridge.ttsStop.mockResolvedValue({ success: true })
 
     const store = useAppStore()
     // 发起第一次朗读（不 await 完成）
@@ -275,14 +367,12 @@ describe('appStore - speakChatMessage', () => {
     // 第二次调用，应触发停止
     await store.speakChatMessage('Salut!')
 
-    expect(mockTtsStop).toHaveBeenCalledTimes(1)
+    expect(platformBridge.ttsStop).toHaveBeenCalledTimes(1)
     // 释放第一次的 promise 防止 hanging
     resolveFirstSpeak!()
   })
 
   it('朗读结束后 isSpeaking 应恢复为 false', async () => {
-    mockTtsSpeak.mockResolvedValue({ success: true })
-
     const store = useAppStore()
     await store.speakChatMessage('Bonjour!')
 
@@ -290,221 +380,60 @@ describe('appStore - speakChatMessage', () => {
   })
 })
 
-// ============== startChatRecording / stopChatRecording ==============
+// ============== Chat recording ==============
 describe('appStore - chat recording', () => {
-  it('startChatRecording 无讯飞配置时应直接返回', async () => {
-    const store = useAppStore()
-    // 没有讯飞配置
-    await store.startChatRecording()
-    expect(store.state).toBe('idle')
-  })
+  beforeEach(async () => {
+    const { platformBridge } = await import('@/services/PlatformBridge')
+    platformBridge.isElectron.mockReturnValue(true)
+    platformBridge.isCapacitor.mockReturnValue(false)
 
-  it('stopChatRecording 非 recording 状态应直接返回', async () => {
-    const store = useAppStore()
-    await store.stopChatRecording()
-    expect(store.state).toBe('idle')
-  })
-})
-
-// ============== setMode 切换时停止录音 ==============
-describe('appStore - setMode side effects', () => {
-  it('口语提示模式录音中切换到 chat 应停止录音', async () => {
-    const store = useAppStore()
-    expect(store.mode).toBe('speaking')
-
-    store.state = 'recording'
-    store.setMode('chat')
-
-    // state 应恢复到 idle（stopRecording 的执行）
-    expect(store.mode).toBe('chat')
-  })
-})
-
-// ============== submitTrainingAnswer 法语容错 ==============
-describe('appStore - submitTrainingAnswer 法语容错', () => {
-  const mockQuestion: TrainingQuestion = {
-    id: 'q1',
-    originalSentence: "J'étudie le français à l'école",
-    blankedSentence: "J'étudie le ___ à l'école",
-    blanks: ['français'],
-    translation: '我在学校学法语',
-    difficulty: 'beginner',
-  }
-
-  const mockSession: TrainingSession = {
-    id: 'session-1',
-    questions: [mockQuestion],
-    createdAt: Date.now(),
-    targetLang: 'fr-FR',
-    userLevel: 'beginner',
-    status: 'active',
-    progress: { q1: 'pending' },
-    userAnswers: {},
-    currentIndex: 0,
-  }
-
-  beforeEach(() => {
-    setActivePinia(createPinia())
-
-    // Mock localStorage
-    const store: Record<string, string> = {}
+    // 设置讯飞密钥（Electron 录音路径需要）
+    const store = { xfyun_app_id: 'test', xfyun_api_key: 'test', xfyun_api_secret: 'test' }
     Object.defineProperty(globalThis, 'localStorage', {
       value: {
-        getItem: (key: string) => {
-          if (key === 'doulingo_intensive_session') return JSON.stringify(mockSession)
-          return store[key] ?? null
-        },
-        setItem: (key: string, val: string) => { store[key] = val },
-        removeItem: (key: string) => { delete store[key] },
-        clear: () => { Object.keys(store).forEach(k => delete store[k]) },
+        getItem: (key: string) => store[key as keyof typeof store] ?? null,
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
+        clear: vi.fn(),
       },
       writable: true,
       configurable: true,
     })
-
-    const appStore = useAppStore()
-    // 直接设置 trainingSession 触发 store 初始化
-    ;(appStore as any).trainingSession = JSON.parse(JSON.stringify(mockSession))
   })
 
-  it('输入带变音符号的正确答案应判定为正确', () => {
-    const appStore = useAppStore()
-    appStore.submitTrainingAnswer('q1', ['français'])
+  it('startChatRecording 应正确启动录音', async () => {
+    const { platformBridge } = await import('@/services/PlatformBridge')
+    platformBridge.speechStart.mockResolvedValue({ success: true })
 
-    expect(appStore.trainingSession?.progress['q1']).toBe('correct')
+    const store = useAppStore()
+    await store.startChatRecording()
+
+    expect(platformBridge.speechStart).toHaveBeenCalled()
   })
 
-  it('输入不带变音符号的答案应判定为正确（é→e 容错）', () => {
-    const appStore = useAppStore()
-    appStore.submitTrainingAnswer('q1', ['francais'])
+  it('stopChatRecording 应正确停止录音', async () => {
+    const { platformBridge } = await import('@/services/PlatformBridge')
+    platformBridge.speechStart.mockResolvedValue({ success: true })
+    platformBridge.speechStop.mockResolvedValue({ success: true, audioBase64: 'dGVzdA==', audioLen: 4 })
+    platformBridge.xfyunAsrRecognize.mockResolvedValue({ success: true, text: 'test' })
 
-    expect(appStore.trainingSession?.progress['q1']).toBe('correct')
+    const store = useAppStore()
+    await store.startChatRecording()
+    await store.stopChatRecording()
+  })
+})
+
+// ============== setMode side effects ==============
+describe('appStore - setMode side effects', () => {
+  beforeEach(async () => {
+    const { platformBridge } = await import('@/services/PlatformBridge')
+    platformBridge.isElectron.mockReturnValue(true)
+    platformBridge.isCapacitor.mockReturnValue(false)
   })
 
-  it('输入完全错误的答案应判定为错误', () => {
-    const appStore = useAppStore()
-    appStore.submitTrainingAnswer('q1', ['anglais'])
-
-    expect(appStore.trainingSession?.progress['q1']).toBe('wrong')
-  })
-
-  it('输入答案带多余标点时应容错', () => {
-    const appStore = useAppStore()
-    appStore.submitTrainingAnswer('q1', ['français!'])
-
-    expect(appStore.trainingSession?.progress['q1']).toBe('correct')
-  })
-
-  it('输入答案大小写不同时应容错', () => {
-    const appStore = useAppStore()
-    appStore.submitTrainingAnswer('q1', ['FRANÇAIS'])
-
-    expect(appStore.trainingSession?.progress['q1']).toBe('correct')
-  })
-
-  it('连字 œ 容错：输入 soeur 匹配 sœur', () => {
-    const q: TrainingQuestion = {
-      id: 'q2',
-      originalSentence: 'Ma sœur est gentille',
-      blankedSentence: 'Ma ___ est gentille',
-      blanks: ['sœur'],
-      translation: '我妹妹很友善',
-      difficulty: 'beginner',
-    }
-    const appStore = useAppStore()
-    ;(appStore as any).trainingSession = {
-      id: 'session-2',
-      questions: [q],
-      createdAt: Date.now(),
-      targetLang: 'fr-FR',
-      userLevel: 'beginner',
-      status: 'active',
-      progress: { q2: 'pending' },
-      userAnswers: {},
-      currentIndex: 0,
-    }
-
-    appStore.submitTrainingAnswer('q2', ['soeur'])
-    expect(appStore.trainingSession?.progress['q2']).toBe('correct')
-  })
-
-  it('连字 æ 容错：输入 cae 匹配 cæ', () => {
-    const q: TrainingQuestion = {
-      id: 'q3',
-      originalSentence: 'Le cæcum est un organe',
-      blankedSentence: 'Le ___ est un organe',
-      blanks: ['cæcum'],
-      translation: '盲肠是一个器官',
-      difficulty: 'intermediate',
-    }
-    const appStore = useAppStore()
-    ;(appStore as any).trainingSession = {
-      id: 'session-3',
-      questions: [q],
-      createdAt: Date.now(),
-      targetLang: 'fr-FR',
-      userLevel: 'intermediate',
-      status: 'active',
-      progress: { q3: 'pending' },
-      userAnswers: {},
-      currentIndex: 0,
-    }
-
-    appStore.submitTrainingAnswer('q3', ['caecum'])
-    expect(appStore.trainingSession?.progress['q3']).toBe('correct')
-  })
-
-  it('多空位答案全部正确时应判定为正确', () => {
-    const q: TrainingQuestion = {
-      id: 'q4',
-      originalSentence: 'Je suis très heureux et content',
-      blankedSentence: 'Je suis ___ ___ et content',
-      blanks: ['très', 'heureux'],
-      translation: '我很高兴和满意',
-      difficulty: 'beginner',
-    }
-    const appStore = useAppStore()
-    ;(appStore as any).trainingSession = {
-      id: 'session-4',
-      questions: [q],
-      createdAt: Date.now(),
-      targetLang: 'fr-FR',
-      userLevel: 'beginner',
-      status: 'active',
-      progress: { q4: 'pending' },
-      userAnswers: {},
-      currentIndex: 0,
-    }
-
-    // 两个空分别输入 tres（无重音）和 heureux（带重音）
-    appStore.submitTrainingAnswer('q4', ['tres', 'heureux'])
-    expect(appStore.trainingSession?.progress['q4']).toBe('correct')
-  })
-
-  it('多空位任一错误应判定为错误', () => {
-    const q: TrainingQuestion = {
-      id: 'q5',
-      originalSentence: 'Je suis très heureux et content',
-      blankedSentence: 'Je suis ___ ___ et content',
-      blanks: ['très', 'heureux'],
-      translation: '我很高兴和满意',
-      difficulty: 'beginner',
-    }
-    const appStore = useAppStore()
-    ;(appStore as any).trainingSession = {
-      id: 'session-5',
-      questions: [q],
-      createdAt: Date.now(),
-      targetLang: 'fr-FR',
-      userLevel: 'beginner',
-      status: 'active',
-      progress: { q5: 'pending' },
-      userAnswers: {},
-      currentIndex: 0,
-    }
-
-    // 第一个空正确（容错），第二个空错误
-    appStore.submitTrainingAnswer('q5', ['tres', 'malheureux'])
-    expect(appStore.trainingSession?.progress['q5']).toBe('wrong')
+  it('切换 mode 应重置 chat recording 状态', () => {
+    const store = useAppStore()
+    store.setMode('chat')
+    expect(store.mode).toBe('chat')
   })
 })

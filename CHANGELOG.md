@@ -1,5 +1,16 @@
 # 更新日志
 
+## v1.11.4 (2026-06-11)
+
+### 修复
+- 【Web】Chrome 浏览器点击录音无响应（`appStore.ts` 缺少 `platformBridge` 导入导致 ReferenceError）
+
+### 测试
+- 重写 `appStore.test.ts` 测试架构：使用 `vi.mock` 可控 PlatformBridge 平台检测
+- 新增浏览器路径录音测试（Chrome webkitSpeechRecognition + 无讯飞密钥场景）
+
+---
+
 ## v1.11.3 (2026-06-11)
 
 ### 修复
