@@ -3,6 +3,10 @@ import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 
 export default defineConfig({
+  base: '/language-learning-app/app/',
+  build: {
+    outDir: 'docs/app',
+  },
   plugins: [
     vue()
   ],
