@@ -838,4 +838,57 @@ function dateGroupId(label: DateGroupLabel): string {
   border-color: rgba(255, 170, 0, 0.45);
   color: rgba(255, 170, 0, 0.85);
 }
+
+/* ===== 窄屏幕（移动端）响应式 ===== */
+@media (max-width: 480px) {
+  .overlay {
+    align-items: flex-end;
+  }
+
+  .panel {
+    width: 100vw;
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 16px 16px 0 0;
+    margin-top: auto;
+    animation: slideUp .3s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .panel-header {
+    padding: 12px 14px;
+  }
+
+  .panel-body {
+    padding: 8px 0;
+  }
+
+  .tab-bar {
+    padding: 0 12px;
+    overflow-x: auto;
+    gap: 0;
+  }
+
+  .tab {
+    padding: 8px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .list-item {
+    padding: 10px 14px;
+  }
+
+  .item-title {
+    font-size: 13px;
+  }
+
+  .item-meta {
+    font-size: 11px;
+  }
+}
 </style>

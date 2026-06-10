@@ -4,6 +4,7 @@ import { useAppStore } from '@/stores/appStore'
 import { SOURCE_LANGUAGES, TARGET_LANGUAGES, ANNOTATION_LANGUAGES, PROFICIENCY_OPTIONS } from '@/types'
 import changelog from '@/../CHANGELOG.md?raw'
 import { version } from '@/../package.json'
+import { platformBridge } from '../services/PlatformBridge'
 
 const store = useAppStore()
 
@@ -119,15 +120,16 @@ const updating = ref(false)
 const updateResult = ref<{ isLatest: boolean; latestVersion?: string; downloadUrl?: string; error?: string } | null>(null)
 
 async function checkUpdate() {
-  if (!window.electronAPI?.checkUpdate) {
-    updateResult.value = { isLatest: false, error: '仅 Electron 环境可用' }
-    return
-  }
   updating.value = true
   updateResult.value = null
   try {
-    const res = await window.electronAPI.checkUpdate()
-    updateResult.value = res
+    const res = await platformBridge.checkUpdate()
+    updateResult.value = {
+      isLatest: !res.hasUpdate,
+      latestVersion: res.version,
+      downloadUrl: res.url,
+      error: res.error,
+    }
   } catch (err: any) {
     updateResult.value = { isLatest: false, error: err.message }
   } finally {
@@ -1536,4 +1538,60 @@ function onProficiencyChange(lang: string) {
 }
 .future-note strong { color: var(--accent); }
 .future-note svg { color: var(--accent); flex-shrink: 0; }
+
+/* ===== 窄屏幕（移动端）响应式 ===== */
+@media (max-width: 480px) {
+  .overlay {
+    align-items: flex-end;
+  }
+
+  .panel {
+    width: 100vw;
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 16px 16px 0 0;
+    margin-top: auto;
+    animation: slideUp .3s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .panel-header {
+    padding: 14px 16px;
+  }
+
+  .panel-content {
+    padding: 12px 16px;
+  }
+
+  .section {
+    padding: 14px 0;
+  }
+
+  .section-title {
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+
+  .field-label {
+    font-size: 12px;
+  }
+
+  .lang-group {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .lang-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  .token-section {
+    gap: 6px;
+  }
+}
 </style>

@@ -797,4 +797,69 @@ function hasAnyFilled(answers: string[]): boolean {
 .sidebar-pop-leave-to { opacity: 0; }
 .sidebar-pop-enter-from .sidebar-panel,
 .sidebar-pop-leave-to .sidebar-panel { transform: translateX(-100%); }
+
+/* ===== 窄屏幕（移动端）响应式 ===== */
+@media (max-width: 480px) {
+  .vocab-main {
+    padding: 0 10px;
+  }
+
+  .vocab-bar {
+    padding: 8px 0;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .toggle-label {
+    display: none;
+  }
+
+  .vocab-status-text {
+    font-size: 12px;
+  }
+
+  .vocab-tool-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .sidebar-panel {
+    width: 75vw;
+    max-width: 260px;
+  }
+
+  .question-area {
+    padding: 0 10px;
+  }
+
+  .question-detail {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  .answer-input {
+    gap: 6px;
+  }
+
+  .answer-input-field {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+
+  .progress-dots {
+    padding: 8px 0;
+    gap: 4px;
+  }
+
+  .dot {
+    width: 20px;
+    height: 20px;
+    font-size: 9px;
+  }
+
+  .empty-icon-wrap {
+    width: 52px;
+    height: 52px;
+  }
+}
 </style>

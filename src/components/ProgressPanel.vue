@@ -521,4 +521,41 @@ function weekChartData(progress: LanguageProgress) {
   margin-top: 6px;
   opacity: 0.7;
 }
+
+/* ===== 窄屏幕（移动端）响应式 ===== */
+@media (max-width: 480px) {
+  .overlay {
+    align-items: flex-end;
+  }
+
+  .panel {
+    width: 100vw;
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 16px 16px 0 0;
+    margin-top: auto;
+    animation: slideUp .3s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .panel-header {
+    padding: 14px 16px;
+  }
+
+  .panel-scroll {
+    padding: 8px 16px 24px;
+  }
+
+  .metric-label {
+    font-size: 11px;
+  }
+
+  .metric-value {
+    font-size: 18px;
+  }
+}
 </style>

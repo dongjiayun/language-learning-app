@@ -932,4 +932,62 @@ onUnmounted(() => {
   opacity: 0.3;
   cursor: not-allowed;
 }
+
+/* ===== 窄屏幕（移动端）响应式 ===== */
+@media (max-width: 480px) {
+  .messages {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .msg {
+    max-width: 92%;
+  }
+
+  .bubble {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .session-bar {
+    padding: 6px 10px;
+  }
+
+  .session-title {
+    max-width: 120px;
+    font-size: 12px;
+  }
+
+  .session-sidebar {
+    max-width: 85vw;
+  }
+
+  .input-bar {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .mic-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .text-input {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .send-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .tips-panel {
+    padding: 10px 12px;
+  }
+
+  .popup {
+    max-width: 90vw;
+  }
+}
 </style>

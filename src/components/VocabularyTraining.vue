@@ -1330,4 +1330,78 @@ function handleClearAllJournals() {
 }
 
 .confirm-ok:hover { opacity: .9; }
+
+/* ===== 窄屏幕（移动端）响应式 ===== */
+@media (max-width: 480px) {
+  .sidebar-panel {
+    width: 75vw;
+    max-width: 260px;
+  }
+
+  .newspaper-scroll {
+    padding: 0 10px 24px;
+  }
+
+  .masthead {
+    padding: 10px 12px 6px;
+  }
+
+  .masthead-title {
+    font-size: 20px;
+  }
+
+  .cat-strip {
+    padding: 6px 12px;
+  }
+
+  .confirm-modal {
+    width: calc(100vw - 32px);
+  }
+
+  .popup {
+    max-width: 90vw;
+  }
+
+  .detail-block {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .vocab-bar {
+    padding: 8px 10px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .toggle-label {
+    display: none;
+  }
+
+  .vocab-status-text {
+    font-size: 12px;
+  }
+
+  .vocab-tool-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .empty-icon-wrap {
+    width: 52px;
+    height: 52px;
+  }
+
+  .level-badge {
+    padding: 0 10px 8px;
+  }
+
+  .progress-section {
+    padding: 0 10px 8px;
+  }
+
+  .error-banner {
+    margin: 0 10px 6px;
+    padding: 6px 8px;
+  }
+}
 </style>

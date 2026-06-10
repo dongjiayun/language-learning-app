@@ -304,9 +304,4 @@ export interface WritingSession {
 export const STORAGE_KEY_WRITING_SESSION = 'doulingo_writing_session'
 export const STORAGE_KEY_WRITING_HISTORY = 'doulingo_writing_history'
 
-// 全局声明 window.electronAPI
-declare global {
-  interface Window {
-    electronAPI: ElectronAPI
-  }
-}
+// （electronAPI 类型声明已移至 env.d.ts）

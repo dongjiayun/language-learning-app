@@ -232,4 +232,51 @@ function handleClearAll() {
 /* 过渡 */
 .slide-up-enter-active, .slide-up-leave-active { transition: all .25s ease; }
 .slide-up-enter-from, .slide-up-leave-to { transform: translateX(-100%); opacity: 0; }
+
+/* ===== 窄屏幕（移动端）响应式 ===== */
+@media (max-width: 480px) {
+  .overlay {
+    align-items: flex-end;
+  }
+
+  .panel {
+    width: 100vw;
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 16px 16px 0 0;
+    margin-top: auto;
+    animation: slideUp .3s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .vb-stats {
+    padding: 8px 14px;
+    font-size: 11px;
+  }
+
+  .vb-entry {
+    padding: 8px 14px;
+  }
+
+  .vb-word {
+    font-size: 13px;
+  }
+
+  .vb-trans {
+    font-size: 11px;
+  }
+
+  .vb-date {
+    font-size: 10px;
+  }
+
+  .search-input {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
 </style>

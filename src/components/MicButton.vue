@@ -76,4 +76,16 @@ const isDisabled = () => store.state !== 'idle' && store.state !== 'recording'
   font-weight: 500;
   color: var(--text-secondary);
 }
+
+/* ===== 窄屏幕（移动端）响应式 ===== */
+@media (max-width: 480px) {
+  .mic {
+    width: 60px;
+    height: 60px;
+  }
+
+  .label {
+    font-size: 11px;
+  }
+}
 </style>

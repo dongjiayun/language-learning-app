@@ -483,4 +483,54 @@ function getLangLabel(lang: string): string {
   background: transparent; border: 0.5px solid var(--border); color: var(--text-secondary);
 }
 .api-guide-btn.ghost:hover { background: var(--bg-hover); }
+
+/* ===== 窄屏幕（移动端）响应式 ===== */
+@media (max-width: 480px) {
+  .header-title {
+    font-size: 13px;
+  }
+
+  .header-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .tab-item {
+    padding: 5px 0 6px;
+  }
+
+  .tab-label {
+    font-size: 9px;
+  }
+
+  /* 6 个 tab 时隐藏 label，只显示图标 */
+  .tab-item .tab-label {
+    display: none;
+  }
+
+  .feed {
+    padding: 8px 10px 16px;
+  }
+
+  .api-guide-modal {
+    width: calc(100vw - 32px);
+    max-height: 90vh;
+  }
+
+  .version {
+    bottom: 44px;
+    font-size: 8px;
+  }
+}
+
+/* 更小的屏幕：<360px 额外收紧 */
+@media (max-width: 360px) {
+  .header {
+    padding: 0 8px;
+  }
+
+  .header-title {
+    font-size: 12px;
+  }
+}
 </style>

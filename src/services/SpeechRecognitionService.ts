@@ -1,18 +1,17 @@
-type SpeechCallback = (text: string) => void
-type ErrorCallback = (error: string) => void
-
 /**
  * 语音识别服务
  *
- * 方式：
- * 1. IPC → 主进程 ffmpeg avfoundation 直接录麦克风（绕开渲染进程 getUserMedia 的降噪问题）
- * 2. 停止后：IPC 获取 PCM base64 → 主进程讯飞 ASR
+ * 跨平台实现：
+ *   Electron: IPC → 主进程 ffmpeg 录音 → 讯飞 ASR
+ *   Android (Capacitor): MediaRecorder API → 直接 WebSocket 调讯飞 ASR
  *
- * 背景：
- * 某些 MacBook Pro + Electron 组合下，getUserMedia + MediaRecorder 链路的
- * 音频处理（即使显式关闭约束）仍会过度过滤，导致捕获的音频接近静音。
- * ffmpeg avfoundation 直接从系统音频层录制，不受此影响。
+ * 统一通过 PlatformBridge 调用，自动选择当前平台实现。
  */
+import { platformBridge } from './PlatformBridge'
+
+type SpeechCallback = (text: string) => void
+type ErrorCallback = (error: string) => void
+
 export class SpeechRecognitionService {
   private onSpeech: SpeechCallback | null = null
   private onError: ErrorCallback | null = null
@@ -29,10 +28,10 @@ export class SpeechRecognitionService {
     this.currentLang = lang
     this.isRecording = true
 
-    console.log('[Recorder] 启动主进程录音...')
+    console.log('[Recorder] 启动录音...')
 
     try {
-      const result = await window.electronAPI.speechStart()
+      const result = await platformBridge.speechStart()
       if (!result?.success) {
         throw new Error(result?.error || '录音启动失败')
       }
@@ -66,17 +65,17 @@ export class SpeechRecognitionService {
     }
 
     try {
-      // 1. 停止录音，获取 PCM base64
-      const pcmResult = await window.electronAPI.speechStop()
+      // 1. 停止录音，获取音频 base64
+      const pcmResult = await platformBridge.speechStop()
       if (!pcmResult?.success) {
         throw new Error(pcmResult?.error || '录音停止失败')
       }
 
       const { audioBase64 = '', audioLen = 0 } = pcmResult
-      console.log('[Recorder] PCM:', audioLen, 'bytes')
+      console.log('[Recorder] 音频:', audioLen, 'bytes')
 
       // 2. 调用讯飞 ASR
-      const result = await window.electronAPI.xfyunAsrRecognize({
+      const result = await platformBridge.xfyunAsrRecognize({
         audioBase64,
         audioLen,
         lang: this.currentLang,
@@ -94,7 +93,7 @@ export class SpeechRecognitionService {
         }
       }
 
-      console.log('[Recorder] 主进程响应:', JSON.stringify(result))
+      console.log('[Recorder] 响应:', JSON.stringify(result))
       const err = result.error || '未检测到语音输入，请重试'
       this.onError?.(err)
       throw new Error(err)

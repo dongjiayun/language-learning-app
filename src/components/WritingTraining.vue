@@ -535,4 +535,80 @@ const correctionTypeLabel: Record<string, string> = {
   font-weight: 700; border: none; cursor: pointer;
 }
 .eval-new-btn:hover { opacity: .9; }
+
+/* ===== 窄屏幕（移动端）响应式 ===== */
+@media (max-width: 480px) {
+  .writing-header {
+    padding: 8px 10px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .writing-title {
+    font-size: 14px;
+  }
+
+  .topics-list {
+    padding: 0 10px;
+  }
+
+  .topic-card {
+    padding: 12px;
+  }
+
+  .topic-title {
+    font-size: 14px;
+  }
+
+  .topic-desc,
+  .topic-translation {
+    font-size: 12px;
+  }
+
+  .writing-editor {
+    padding: 0 10px;
+  }
+
+  .editor-textarea {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .editor-actions {
+    padding: 8px 0;
+  }
+
+  .eval-content {
+    padding: 0 10px;
+  }
+
+  .eval-score-row {
+    gap: 8px;
+  }
+
+  .eval-score-num {
+    font-size: 28px;
+  }
+
+  .eval-dimension-bar {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .correction-card {
+    padding: 8px;
+  }
+
+  .hints-section {
+    padding: 8px 0;
+  }
+
+  .hint-block {
+    padding: 10px;
+  }
+
+  .editor-back span {
+    display: none;
+  }
+}
 </style>

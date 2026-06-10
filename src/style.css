@@ -92,3 +92,15 @@ a {
   color: var(--accent);
   text-decoration: none;
 }
+
+/* ===== 窄屏幕（移动端）响应式适配 ===== */
+@media (max-width: 480px) {
+  :root {
+    --top-bar-height: 48px;
+  }
+
+  .app {
+    /* 防止内容溢出 */
+    min-width: 0;
+  }
+}

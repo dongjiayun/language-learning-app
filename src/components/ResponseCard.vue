@@ -177,4 +177,19 @@ function handleSelectText(e: MouseEvent) {
 
 .fade-enter-active, .fade-leave-active { transition: opacity .2s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* ===== 窄屏幕（移动端）响应式 ===== */
+@media (max-width: 480px) {
+  .card {
+    padding: 12px;
+  }
+
+  .text {
+    font-size: 14px;
+  }
+
+  .trans {
+    font-size: 12px;
+  }
+}
 </style>

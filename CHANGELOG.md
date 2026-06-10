@@ -1,6 +1,27 @@
 # 更新日志
 
-## v1.9.0 (2026-06-09)
+## v1.10.0 (2026-06-10)
+
+### 新增
+- Android 移动端移植：Capacitor 5 跨平台容器 + Gradle 构建流水线
+- `PlatformBridge.ts` 跨平台抽象层：统一 Electron IPC / Capacitor / Web 三平台 Native API 调用，自动运行时检测
+- `TextToSpeechService` / `SpeechRecognitionService` 通过 `PlatformBridge` 实现 Android WebView 兼容
+- 完整 `PlatformBridge.test.ts` 测试套件（15 个测试用例）
+
+### UI 适配
+- 全 14 个 Vue 组件窄屏幕（`max-width: 480px`）响应式适配
+- 底部 Tab Bar 窄屏隐藏文字标签仅留图标
+- 设置 / 历史 / 进度 / 生词本面板窄屏改为底部弹出（slideUp 动画），全宽 + 92vh 高度
+- AI 对话 / 口语练习消息气泡宽度 85% → 92%，内边距缩小
+- 口语练习顶栏可换行，隐藏次要文字标签
+- 词汇训练侧栏固定 200px → 75vw（最大 260px）
+- 写作 / 强化训练编辑器区间距紧凑化
+- 全局按钮、输入框、字体在窄屏下统一缩减
+
+### Android
+- Android SDK 33 编译 + Gradle 8.14 构建流水线
+- 创建 Pixel 6 Pro AVD 模拟器（Android 13 arm64-v8a）
+- APK 构建验证通过，模拟器安装运行成功
 
 ### 修复
 - 写作训练提示功能优化：每次点击提示按钮，新提示覆盖旧提示，不再叠加

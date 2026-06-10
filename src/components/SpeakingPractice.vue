@@ -859,4 +859,102 @@ function handleSelectText(e: MouseEvent) {
 
 .fade-enter-active, .fade-leave-active { transition: opacity .2s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* ===== 窄屏幕（移动端）响应式 ===== */
+@media (max-width: 480px) {
+  .practice-bar {
+    padding: 6px 8px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .practice-controls {
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .interval-label {
+    display: none;
+  }
+
+  .interval-select {
+    padding: 3px 18px 3px 6px;
+    font-size: 10px;
+    background-position: right 4px center;
+    background-size: 8px 5px;
+  }
+
+  .autoread-label {
+    display: none;
+  }
+
+  .autoread-toggle {
+    padding: 4px;
+  }
+
+  .start-btn,
+  .stop-btn {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  .start-btn span,
+  .stop-btn span {
+    display: none;
+  }
+
+  .messages {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .msg {
+    max-width: 92%;
+  }
+
+  .bubble {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .input-bar {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .primary-mic {
+    height: 48px;
+  }
+
+  .mic-label {
+    font-size: 13px;
+  }
+
+  .text-input {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .send-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .tool-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .hints-panel {
+    padding: 8px 10px;
+  }
+
+  .hint-btn {
+    padding: 6px 8px;
+  }
+
+  .popup {
+    max-width: 90vw;
+  }
+}
 </style>
