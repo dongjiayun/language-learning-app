@@ -836,7 +836,13 @@ export const useAppStore = defineStore('app', () => {
 
   async function startRecording() {
     if (state.value !== 'idle') return
-    if (!localStorage.getItem('xfyun_app_id') || !localStorage.getItem('xfyun_api_key') || !localStorage.getItem('xfyun_api_secret')) {
+
+    // 浏览器原生 SpeechRecognition 不需要讯飞密钥
+    const isWebSpeechAvailable = typeof window !== 'undefined' &&
+      !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
+    const needsXunfei = platformBridge.isElectron() || platformBridge.isCapacitor() || !isWebSpeechAvailable
+
+    if (needsXunfei && (!localStorage.getItem('xfyun_app_id') || !localStorage.getItem('xfyun_api_key') || !localStorage.getItem('xfyun_api_secret'))) {
       showApiGuide.value = 'xfyun'
       return
     }

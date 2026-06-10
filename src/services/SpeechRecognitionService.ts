@@ -21,6 +21,28 @@ function supportsBrowserSpeechRecognition(): boolean {
   return !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
 }
 
+/**
+ * 检测是否在微信/企业微信内置浏览器中
+ */
+function isWechatBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false
+  const ua = navigator.userAgent.toLowerCase()
+  return ua.includes('micromessenger')
+}
+
+/**
+ * 获取浏览器名称（用于错误提示）
+ */
+function getBrowserName(): string {
+  if (typeof navigator === 'undefined') return '当前环境'
+  const ua = navigator.userAgent
+  if (ua.includes('Edg')) return 'Edge'
+  if (ua.includes('Chrome')) return 'Chrome'
+  if (ua.includes('Firefox')) return 'Firefox'
+  if (ua.includes('Safari')) return 'Safari'
+  return '当前浏览器'
+}
+
 export class SpeechRecognitionService {
   private onSpeech: SpeechCallback | null = null
   private onError: ErrorCallback | null = null
@@ -42,6 +64,21 @@ export class SpeechRecognitionService {
     // 浏览器原生 SpeechRecognition API
     if (!platformBridge.isElectron() && !platformBridge.isCapacitor() && supportsBrowserSpeechRecognition()) {
       return this.startBrowserRecognition(lang)
+    }
+
+    // 微信内置浏览器：明确提示不支持
+    if (!platformBridge.isElectron() && !platformBridge.isCapacitor() && isWechatBrowser()) {
+      const msg = '微信浏览器不支持语音识别，请使用系统浏览器（Chrome/Safari）打开，或下载客户端使用'
+      this.onError?.(msg)
+      throw new Error(msg)
+    }
+
+    // 浏览器但不支持原生 SpeechRecognition（如 Firefox 旧版）
+    if (!platformBridge.isElectron() && !platformBridge.isCapacitor() && !supportsBrowserSpeechRecognition()) {
+      const browser = getBrowserName()
+      const msg = `${browser}不支持语音识别，请使用 Chrome 或下载客户端`
+      this.onError?.(msg)
+      throw new Error(msg)
     }
 
     // Electron / Capacitor / fallback: 走 MediaRecorder + 讯飞

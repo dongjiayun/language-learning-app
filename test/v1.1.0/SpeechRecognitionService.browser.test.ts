@@ -189,8 +189,7 @@ describe('SpeechRecognitionService - Browser (SpeechRecognition API)', () => {
     const service = createService()
     const onError = vi.fn()
 
-    await service.start(vi.fn(), onError, 'en-US')
-
+    await expect(service.start(vi.fn(), onError, 'en-US')).rejects.toThrow('不支持语音识别')
     expect(onError).toHaveBeenCalled()
   })
 
