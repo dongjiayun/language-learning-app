@@ -1,6 +1,6 @@
 {
   "name": "doulingo-assist",
-  "version": "1.10.0",
+  "version": "1.11.1",
   "description": "外语口语学习助手 - Foreign Language Speaking Assistant",
   "main": "dist-electron/main.js",
   "scripts": {
