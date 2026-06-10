@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useAppStore } from '@/stores/appStore'
 import { ChatService } from '@/services/ChatService'
+import type { TrainingQuestion, TrainingSession } from '@/types'
 
 // ===== Mocks =====
 vi.mock('@/services/ChatService', () => ({
@@ -316,5 +317,194 @@ describe('appStore - setMode side effects', () => {
 
     // state 应恢复到 idle（stopRecording 的执行）
     expect(store.mode).toBe('chat')
+  })
+})
+
+// ============== submitTrainingAnswer 法语容错 ==============
+describe('appStore - submitTrainingAnswer 法语容错', () => {
+  const mockQuestion: TrainingQuestion = {
+    id: 'q1',
+    originalSentence: "J'étudie le français à l'école",
+    blankedSentence: "J'étudie le ___ à l'école",
+    blanks: ['français'],
+    translation: '我在学校学法语',
+    difficulty: 'beginner',
+  }
+
+  const mockSession: TrainingSession = {
+    id: 'session-1',
+    questions: [mockQuestion],
+    createdAt: Date.now(),
+    targetLang: 'fr-FR',
+    userLevel: 'beginner',
+    status: 'active',
+    progress: { q1: 'pending' },
+    userAnswers: {},
+    currentIndex: 0,
+  }
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+
+    // Mock localStorage
+    const store: Record<string, string> = {}
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: {
+        getItem: (key: string) => {
+          if (key === 'doulingo_intensive_session') return JSON.stringify(mockSession)
+          return store[key] ?? null
+        },
+        setItem: (key: string, val: string) => { store[key] = val },
+        removeItem: (key: string) => { delete store[key] },
+        clear: () => { Object.keys(store).forEach(k => delete store[k]) },
+      },
+      writable: true,
+      configurable: true,
+    })
+
+    const appStore = useAppStore()
+    // 直接设置 trainingSession 触发 store 初始化
+    ;(appStore as any).trainingSession = JSON.parse(JSON.stringify(mockSession))
+  })
+
+  it('输入带变音符号的正确答案应判定为正确', () => {
+    const appStore = useAppStore()
+    appStore.submitTrainingAnswer('q1', ['français'])
+
+    expect(appStore.trainingSession?.progress['q1']).toBe('correct')
+  })
+
+  it('输入不带变音符号的答案应判定为正确（é→e 容错）', () => {
+    const appStore = useAppStore()
+    appStore.submitTrainingAnswer('q1', ['francais'])
+
+    expect(appStore.trainingSession?.progress['q1']).toBe('correct')
+  })
+
+  it('输入完全错误的答案应判定为错误', () => {
+    const appStore = useAppStore()
+    appStore.submitTrainingAnswer('q1', ['anglais'])
+
+    expect(appStore.trainingSession?.progress['q1']).toBe('wrong')
+  })
+
+  it('输入答案带多余标点时应容错', () => {
+    const appStore = useAppStore()
+    appStore.submitTrainingAnswer('q1', ['français!'])
+
+    expect(appStore.trainingSession?.progress['q1']).toBe('correct')
+  })
+
+  it('输入答案大小写不同时应容错', () => {
+    const appStore = useAppStore()
+    appStore.submitTrainingAnswer('q1', ['FRANÇAIS'])
+
+    expect(appStore.trainingSession?.progress['q1']).toBe('correct')
+  })
+
+  it('连字 œ 容错：输入 soeur 匹配 sœur', () => {
+    const q: TrainingQuestion = {
+      id: 'q2',
+      originalSentence: 'Ma sœur est gentille',
+      blankedSentence: 'Ma ___ est gentille',
+      blanks: ['sœur'],
+      translation: '我妹妹很友善',
+      difficulty: 'beginner',
+    }
+    const appStore = useAppStore()
+    ;(appStore as any).trainingSession = {
+      id: 'session-2',
+      questions: [q],
+      createdAt: Date.now(),
+      targetLang: 'fr-FR',
+      userLevel: 'beginner',
+      status: 'active',
+      progress: { q2: 'pending' },
+      userAnswers: {},
+      currentIndex: 0,
+    }
+
+    appStore.submitTrainingAnswer('q2', ['soeur'])
+    expect(appStore.trainingSession?.progress['q2']).toBe('correct')
+  })
+
+  it('连字 æ 容错：输入 cae 匹配 cæ', () => {
+    const q: TrainingQuestion = {
+      id: 'q3',
+      originalSentence: 'Le cæcum est un organe',
+      blankedSentence: 'Le ___ est un organe',
+      blanks: ['cæcum'],
+      translation: '盲肠是一个器官',
+      difficulty: 'intermediate',
+    }
+    const appStore = useAppStore()
+    ;(appStore as any).trainingSession = {
+      id: 'session-3',
+      questions: [q],
+      createdAt: Date.now(),
+      targetLang: 'fr-FR',
+      userLevel: 'intermediate',
+      status: 'active',
+      progress: { q3: 'pending' },
+      userAnswers: {},
+      currentIndex: 0,
+    }
+
+    appStore.submitTrainingAnswer('q3', ['caecum'])
+    expect(appStore.trainingSession?.progress['q3']).toBe('correct')
+  })
+
+  it('多空位答案全部正确时应判定为正确', () => {
+    const q: TrainingQuestion = {
+      id: 'q4',
+      originalSentence: 'Je suis très heureux et content',
+      blankedSentence: 'Je suis ___ ___ et content',
+      blanks: ['très', 'heureux'],
+      translation: '我很高兴和满意',
+      difficulty: 'beginner',
+    }
+    const appStore = useAppStore()
+    ;(appStore as any).trainingSession = {
+      id: 'session-4',
+      questions: [q],
+      createdAt: Date.now(),
+      targetLang: 'fr-FR',
+      userLevel: 'beginner',
+      status: 'active',
+      progress: { q4: 'pending' },
+      userAnswers: {},
+      currentIndex: 0,
+    }
+
+    // 两个空分别输入 tres（无重音）和 heureux（带重音）
+    appStore.submitTrainingAnswer('q4', ['tres', 'heureux'])
+    expect(appStore.trainingSession?.progress['q4']).toBe('correct')
+  })
+
+  it('多空位任一错误应判定为错误', () => {
+    const q: TrainingQuestion = {
+      id: 'q5',
+      originalSentence: 'Je suis très heureux et content',
+      blankedSentence: 'Je suis ___ ___ et content',
+      blanks: ['très', 'heureux'],
+      translation: '我很高兴和满意',
+      difficulty: 'beginner',
+    }
+    const appStore = useAppStore()
+    ;(appStore as any).trainingSession = {
+      id: 'session-5',
+      questions: [q],
+      createdAt: Date.now(),
+      targetLang: 'fr-FR',
+      userLevel: 'beginner',
+      status: 'active',
+      progress: { q5: 'pending' },
+      userAnswers: {},
+      currentIndex: 0,
+    }
+
+    // 第一个空正确（容错），第二个空错误
+    appStore.submitTrainingAnswer('q5', ['tres', 'malheureux'])
+    expect(appStore.trainingSession?.progress['q5']).toBe('wrong')
   })
 })

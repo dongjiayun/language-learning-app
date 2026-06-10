@@ -7,6 +7,7 @@ import { ChatService } from '@/services/ChatService'
 import { VocabTrainingService } from '@/services/VocabTrainingService'
 import { TextToSpeechService } from '@/services/TextToSpeechService'
 import { SpeechRecognitionService } from '@/services/SpeechRecognitionService'
+import { isTextEqual } from '@/utils/textNormalization'
 
 const STORAGE_KEY_API = 'doulingo_deepseek_api_key'
 const STORAGE_KEY_SOURCE_LANG = 'doulingo_source_lang'
@@ -237,7 +238,8 @@ export const useAppStore = defineStore('app', () => {
 
     const isCorrect = answers.every((a: string, i: number) => {
       const expected = question.blanks[i] || ''
-      return a.trim().toLowerCase() === expected.trim().toLowerCase()
+      // 使用归一化比较：忽略变音符号（é→e）、连字（æ→ae）、标点符号和大小写
+      return isTextEqual(a, expected)
     })
     session.progress[questionId] = isCorrect ? 'correct' : 'wrong'
 
