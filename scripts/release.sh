@@ -141,25 +141,25 @@ NEW_VERSION=$(get_version)
 info "版本已升级: v$CURRENT_VERSION → v$NEW_VERSION"
 
 # ============================================================
-#  Step 4 — 更新 CHANGELOG
+#  Step 4 — 更新 CHANGELOG（自动总结）
 # ============================================================
 echo ""
 info "【步骤 4/8】更新 CHANGELOG..."
 
+# 创建新版本头部
 node scripts/update-changelog.mjs
 
-# 打开编辑器让用户填写更新内容
-CHANGELOG_FILE="$ROOT/CHANGELOG.md"
-if confirm "是否打开 CHANGELOG.md 编辑更新内容？"; then
-  ${EDITOR:-vim} "$CHANGELOG_FILE"
-fi
+# 自动从 git log 总结 changelog 内容
+info "自动总结 git commit 到 CHANGELOG..."
+node scripts/changelog-autofill.mjs
 
-info "当前 CHANGELOG 头部:"
-head -20 "$CHANGELOG_FILE"
+info "CHANGELOG 预览（v$NEW_VERSION）:"
+head -20 "$ROOT/CHANGELOG.md"
 echo ""
 confirm "CHANGELOG 内容是否正确？" || {
-  warn "请手动编辑 $CHANGELOG_FILE 后重新运行脚本"
-  exit 1
+  warn "如需手动调整，请编辑 $ROOT/CHANGELOG.md 后重新运行脚本"
+  ${EDITOR:-vim} "$ROOT/CHANGELOG.md"
+  confirm "继续？" || exit 1
 }
 
 # ============================================================
