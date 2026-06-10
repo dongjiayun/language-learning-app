@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from './stores/appStore'
 import { SOURCE_LANGUAGES, TARGET_LANGUAGES, ANNOTATION_LANGUAGES } from './types/index'
 import MicButton from './components/MicButton.vue'
@@ -16,6 +17,29 @@ import VocabBookPanel from './components/VocabBookPanel.vue'
 import { version } from '../package.json'
 
 const store = useAppStore()
+const route = useRoute()
+const router = useRouter()
+
+// 从路由恢复 mode
+if (route.params.mode && typeof route.params.mode === 'string') {
+  store.setMode(route.params.mode)
+}
+
+// mode 变化 → 更新路由
+watch(() => store.mode, (mode) => {
+  const current = route.params.mode
+  if (current !== mode) {
+    router.replace({ name: 'app', params: { mode } })
+  }
+})
+
+// 路由变化 → 更新 mode（处理浏览器前进/后退）
+watch(() => route.params.mode, (mode) => {
+  if (mode && typeof mode === 'string' && mode !== store.mode) {
+    store.setMode(mode)
+  }
+})
+
 const showWebBanner = ref(typeof window !== 'undefined' && !(window as any).electronAPI)
 
 function dismissWebBanner() {

@@ -66,6 +66,7 @@ onUnmounted(() => {
 
 // 固定尺寸常量
 const GAP = 10
+const CARD_W = 200        // 固定卡片宽度
 const HL_H = 220          // 头条高度
 const SEC_H = 28           // 版块标题高度
 
@@ -117,11 +118,13 @@ const newspaperLayout = computed((): { cards: Card[]; totalH: number } => {
 
   const w = containerWidth.value
   const gap = GAP
-  // 列数：自适应
-  const cols = w >= 700 ? 3 : 2
+  // 固定卡片宽度，自动决定列数
+  const fixedW = CARD_W
+  const cols = Math.max(1, Math.floor((w + gap) / (fixedW + gap)))
+  const totalGridW = cols * fixedW + (cols - 1) * gap
+  const offsetX = Math.max(0, Math.floor((w - totalGridW) / 2))
+  const colW = fixedW
   const isNarrow = w < 480
-  // 列宽（px）：平分容器宽度
-  const colW = Math.floor((w - gap * (cols - 1)) / cols)
   // 窄屏头条矮一点
   const hlH = isNarrow ? 160 : HL_H
 
@@ -193,7 +196,7 @@ const newspaperLayout = computed((): { cards: Card[]; totalH: number } => {
           id: a.id,
           type: 'article',
           article: a,
-          left: c * (colW + gap),
+          left: offsetX + c * (colW + gap),
           top: cursorY,
           width: colW,
           height: rowH,
