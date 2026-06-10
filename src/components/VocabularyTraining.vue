@@ -118,7 +118,7 @@ const newspaperLayout = computed((): { cards: Card[]; totalH: number } => {
   const w = containerWidth.value
   const gap = GAP
   // 列数：自适应
-  const cols = w >= 700 ? 3 : w >= 480 ? 2 : 1
+  const cols = w >= 700 ? 3 : 2
   const isNarrow = w < 480
   // 列宽（px）：平分容器宽度
   const colW = Math.floor((w - gap * (cols - 1)) / cols)
