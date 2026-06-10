@@ -118,9 +118,12 @@ const newspaperLayout = computed((): { cards: Card[]; totalH: number } => {
   const w = containerWidth.value
   const gap = GAP
   // 列数：自适应
-  const cols = w >= 700 ? 3 : 2
+  const cols = w >= 700 ? 3 : w >= 480 ? 2 : 1
+  const isNarrow = w < 480
   // 列宽（px）：平分容器宽度
   const colW = Math.floor((w - gap * (cols - 1)) / cols)
+  // 窄屏头条矮一点
+  const hlH = isNarrow ? 160 : HL_H
 
   const cards: Card[] = []
   let cursorY = 0
@@ -131,10 +134,10 @@ const newspaperLayout = computed((): { cards: Card[]; totalH: number } => {
     id: 'hl',
     type: 'headline',
     article: hl,
-    left: 0, top: cursorY, width: w, height: HL_H,
+    left: 0, top: cursorY, width: w, height: hlH,
     hasImage: true,
   })
-  cursorY += HL_H + gap
+  cursorY += hlH + gap
 
   // ===== 2. 版块分组 =====
   const rest = articles.slice(1)
@@ -1402,6 +1405,64 @@ function handleClearAllJournals() {
   .error-banner {
     margin: 0 10px 6px;
     padding: 6px 8px;
+  }
+
+  /* ===== 期刊窄屏优化 ===== */
+  .np-headline {
+    flex-direction: column;
+  }
+
+  .np-hl-img {
+    width: 100%;
+    height: 100px;
+  }
+
+  .np-hl-body {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+
+  .np-hl-title {
+    font-size: 16px;
+    -webkit-line-clamp: 2;
+  }
+
+  .np-hl-summary {
+    font-size: 12px;
+    -webkit-line-clamp: 2;
+  }
+
+  .detail-img {
+    height: 140px;
+  }
+
+  .detail-title {
+    font-size: 18px;
+  }
+
+  .detail-scroll {
+    padding: 12px 12px 32px;
+  }
+
+  .np-cell-title {
+    font-size: 13px;
+  }
+
+  .np-has-img .np-cell-title {
+    font-size: 14px;
+  }
+
+  .np-has-img .np-cell-summary {
+    font-size: 12px;
+  }
+
+  .np-cell-body {
+    padding: 8px 10px;
+  }
+
+  .np-cell-img {
+    min-height: 70px;
+    height: 48%;
   }
 }
 </style>
