@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useAppStore } from './stores/appStore'
 import { SOURCE_LANGUAGES, TARGET_LANGUAGES, ANNOTATION_LANGUAGES } from './types/index'
 import MicButton from './components/MicButton.vue'
@@ -15,6 +16,11 @@ import VocabBookPanel from './components/VocabBookPanel.vue'
 import { version } from '../package.json'
 
 const store = useAppStore()
+const showWebBanner = ref(typeof window !== 'undefined' && !(window as any).electronAPI)
+
+function dismissWebBanner() {
+  showWebBanner.value = false
+}
 
 function getLangLabel(lang: string): string {
   const m: Record<string, string> = { 'zh-CN': '中文', 'en-US': 'English', 'fr-FR': 'Français', 'ja-JP': '日本語' }
@@ -56,6 +62,19 @@ function getLangLabel(lang: string): string {
         </svg>
       </button>
     </header>
+
+    <!-- Web 版下载客户端引导 -->
+    <Transition name="slide-down">
+      <div v-if="showWebBanner" class="web-banner">
+        <span class="web-banner-text">
+          💡 下载客户端获得<strong>更流畅的体验</strong> · 系统级 TTS · 无浏览器限制
+        </span>
+        <a href="https://dongjiayun.github.io/language-learning-app/#download" target="_blank" class="web-banner-link">下载客户端</a>
+        <button class="web-banner-close" @click="dismissWebBanner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </Transition>
 
     <!-- 口语提示内容 -->
     <main v-if="store.mode === 'speaking'" class="feed">
@@ -412,6 +431,62 @@ function getLangLabel(lang: string): string {
   user-select: none;
   z-index: 0;
 }
+
+/* ===== Web 版下载引导条 ===== */
+.web-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(29,155,240,0.08), rgba(10,132,255,0.04));
+  border-bottom: 0.5px solid rgba(29,155,240,0.12);
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+}
+
+.web-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.web-banner-text strong {
+  color: var(--accent);
+}
+
+.web-banner-link {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.web-banner-link:hover {
+  opacity: 0.9;
+}
+
+.web-banner-close {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.web-banner-close:hover {
+  background: var(--bg-hover);
+}
+
 .global-toast {
   position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
   z-index: 9999;
