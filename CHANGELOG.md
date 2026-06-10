@@ -1,43 +1,5 @@
 # 更新日志
 
-## v2.0.0 (2026-06-11)
-
-
----
-
-### 新增
-- 强化训练法语字符容错 + 一键发布脚本
-- 固定期刊卡片宽度 + Vue Router history mode 路由 - CARD_W=200 固定宽度，自动计算列数，居中排列 - 新增 vue-router@4，history mode（Web）/ hash mode（Electron） - store.mode ↔ 路由双向同步，刷新保持当前页面 - build:web 脚本自动生成 404.html（GitHub Pages SPA 回退）
-- Web 版添加下载客户端引导条 & 官网推荐标语
-- Web 在线版部署到 GitHub Pages
-- Android 移植 + 全组件窄屏幕移动端适配
-- 添加检查更新功能
-
-### 修复
-- 发布脚本构建步骤容忍失败
-- 发布脚本测试步骤容忍已知前置失败
-- Web 版语音识别改用浏览器原生 SpeechRecognition API - 根因：MediaRecorder 输出 webm/opus 与讯飞 ASR 期望的 raw PCM 格式不匹配 - 修复：browser 路径使用 webkitSpeechRecognition（无需 API Key，实时流式识别） - Electron/Capacitor 路径不变，仍走 MediaRecorder + 讯飞 - 新增 7 个 browser 路径单元测试，全部通过 - 全部 18 个测试（Electron 11 + Browser 7）通过
-- 恢复窄屏双列，卡片宽度不变
-- 期刊窄屏自适应优化 — 单列布局、头条竖排、卡片字号
-- Hero 标题白色方块问题
-
-### 文档
-- Web 版入口移至顶栏和首屏
-- 下载区添加立即体验在线版按钮
-- 安卓版本号改为 1.9.0
-- 反馈建议链接指向 GitHub Issues
-- macOS 下载按钮标明 Apple Silicon & 添加损坏问题指引
-- macOS 卡片增加 Intel 适配说明，下载按钮独立可点击
-- 调整 MLGA 区块副标题文案
-- 下载区 macOS 合并为一张卡片，Intel 版标黄
-- 移动端响应式适配
-- 下载链接改为 GitHub Releases 直链
-
-### 变更
-- CHANGELOG 清理官网无关条目 & 官网版本号同步 v1.9.0
-
----
-
 ## v1.11.0 (2026-06-10)
 
 ### 新增
