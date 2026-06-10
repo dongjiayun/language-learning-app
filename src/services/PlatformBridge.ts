@@ -11,6 +11,9 @@
 
 type Platform = 'electron' | 'capacitor' | 'browser'
 
+// @ts-ignore - Vite JSON import
+import pkg from '../../package.json'
+
 interface XfyunAsrParams {
   audioBase64: string
   audioLen: number
@@ -379,7 +382,7 @@ class PlatformBridgeSingleton {
       if (!res.ok) return { success: false, error: '检查更新失败' }
       const data = await res.json()
       const latestVersion = (data.tag_name || '').replace(/^v/, '')
-      const currentVersion = '1.9.0'
+      const currentVersion = pkg.version
       const hasUpdate = this.compareVersions(latestVersion, currentVersion) > 0
       return {
         success: true,

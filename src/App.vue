@@ -281,6 +281,7 @@ function getLangLabel(lang: string): string {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
   -webkit-app-region: drag;
 }
 

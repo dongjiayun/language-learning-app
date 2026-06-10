@@ -61,16 +61,17 @@ export class SpeechRecognitionService {
     this.onError = onError
     this.currentLang = lang
 
-    // 浏览器原生 SpeechRecognition API
-    if (!platformBridge.isElectron() && !platformBridge.isCapacitor() && supportsBrowserSpeechRecognition()) {
-      return this.startBrowserRecognition(lang)
-    }
-
-    // 微信内置浏览器：明确提示不支持
+    // 微信内置浏览器：明确提示不支持（需在原生 API 检测之前，因为 iOS 微信
+    // WKWebView 暴露了 webkitSpeechRecognition 但麦克风受限，会报错）
     if (!platformBridge.isElectron() && !platformBridge.isCapacitor() && isWechatBrowser()) {
       const msg = '微信浏览器不支持语音识别，请使用系统浏览器（Chrome/Safari）打开，或下载客户端使用'
       this.onError?.(msg)
       throw new Error(msg)
+    }
+
+    // 浏览器原生 SpeechRecognition API
+    if (!platformBridge.isElectron() && !platformBridge.isCapacitor() && supportsBrowserSpeechRecognition()) {
+      return this.startBrowserRecognition(lang)
     }
 
     // 浏览器但不支持原生 SpeechRecognition（如 Firefox 旧版）

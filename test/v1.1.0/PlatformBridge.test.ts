@@ -241,6 +241,47 @@ describe('PlatformBridge - 检查更新', () => {
     expect(mockCheck).toHaveBeenCalled()
     expect(result.success).toBe(true)
   })
+
+  it('browser 模式应使用 package.json 中的版本号进行比较', async () => {
+    cleanupWindow()
+    // 模拟 fetch 返回最新版本
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        tag_name: 'v1.11.0',
+        html_url: 'https://github.com/dongjiayun/language-learning-app/releases/tag/v1.11.0',
+      }),
+    })
+    ;(globalThis as any).fetch = mockFetch
+
+    const bridge = await createBridge()
+
+    // 由于 package.json 版本是 1.11.1，而最新 release 是 1.11.0，应无更新
+    const result = await bridge.checkUpdate()
+
+    expect(result.success).toBe(true)
+    expect(result.hasUpdate).toBe(false)
+    expect(result.version).toBe('1.11.0')
+  })
+
+  it('browser 模式检测到有新版本时应返回 hasUpdate=true', async () => {
+    cleanupWindow()
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        tag_name: 'v2.0.0',
+        html_url: 'https://github.com/dongjiayun/language-learning-app/releases/tag/v2.0.0',
+      }),
+    })
+    ;(globalThis as any).fetch = mockFetch
+
+    const bridge = await createBridge()
+    const result = await bridge.checkUpdate()
+
+    expect(result.success).toBe(true)
+    expect(result.hasUpdate).toBe(true)
+    expect(result.version).toBe('2.0.0')
+  })
 })
 
 describe('PlatformBridge - 辅助方法', () => {

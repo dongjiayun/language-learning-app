@@ -368,6 +368,67 @@ describe('SpeechRecognitionService - Browser (SpeechRecognition API)', () => {
     expect(onError).not.toHaveBeenCalled()
   })
 
+  // ===== 微信浏览器场景 =====
+
+  it('微信浏览器（userAgent 含 micromessenger）应优先显示微信提示，即使 webkitSpeechRecognition 存在', async () => {
+    // 设置 navigator 包含微信标识
+    Object.defineProperty(globalThis, 'navigator', {
+      value: {
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/16A5288q MicroMessenger/8.0.40',
+      },
+      writable: true,
+      configurable: true,
+    })
+
+    // 即使 window 中暴露了 webkitSpeechRecognition，WeChat 检测应先于原生 API
+    const mockRecognition = new MockSpeechRecognition()
+    Object.defineProperty(globalThis, 'window', {
+      value: {
+        webkitSpeechRecognition: vi.fn(() => mockRecognition),
+        SpeechRecognition: undefined,
+      },
+      writable: true,
+      configurable: true,
+    })
+
+    const service = createService()
+    const onSpeech = vi.fn()
+    const onError = vi.fn()
+
+    await expect(service.start(onSpeech, onError, 'zh-CN')).rejects.toThrow('微信浏览器不支持语音识别')
+    expect(onError).toHaveBeenCalledWith('微信浏览器不支持语音识别，请使用系统浏览器（Chrome/Safari）打开，或下载客户端使用')
+    // 确保原生 API 没有被调用
+    expect(mockRecognition.start).not.toHaveBeenCalled()
+  })
+
+  it('非微信浏览器且有 webkitSpeechRecognition 应正常使用原生 API', async () => {
+    // 设置 navigator 不包含微信标识
+    Object.defineProperty(globalThis, 'navigator', {
+      value: {
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+      writable: true,
+      configurable: true,
+    })
+
+    const mockRecognition = new MockSpeechRecognition()
+    Object.defineProperty(globalThis, 'window', {
+      value: {
+        webkitSpeechRecognition: vi.fn(() => mockRecognition),
+        SpeechRecognition: undefined,
+      },
+      writable: true,
+      configurable: true,
+    })
+
+    const service = createService()
+    const onError = vi.fn()
+
+    await service.start(vi.fn(), onError, 'en-US')
+    // 不应触发任何错误
+    expect(onError).not.toHaveBeenCalled()
+  })
+
   it('连续 onerror 两次（如网络波动）应只调用 onError 一次', async () => {
     const mock = new MockSpeechRecognition()
     mock.start = vi.fn(function (this: MockSpeechRecognition) {
