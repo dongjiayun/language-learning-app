@@ -1,5 +1,34 @@
 # 更新日志
 
+## v1.11.0 (2026-06-10)
+
+### 新增
+- Web 在线版部署（GitHub Pages）：`npm run build:web` 构建到 `docs/app/`
+- Vue Router history mode 路由（`/speaking` `/chat` `/vocab` `/intensive` `/writing`）
+- 官网顶栏导航新增「🌐 在线版」入口按钮
+- 官网首屏 Hero 主按钮改为「立即体验在线版」
+- Web 版应用内顶部引导条：「下载客户端获得更流畅体验」
+- 官网下载区推荐标语：「推荐下载客户端 — 系统语音引擎 TTS · 全功能离线体验 · 更流畅」
+- SpeechRecognitionService 新增 browser 路径（`webkitSpeechRecognition`），无需 API Key
+- 新增 Web 路径测试套件 `SpeechRecognitionService.browser.test.ts`（7 个测试用例）
+- `build:web` 脚本自动生成 `404.html`（GitHub Pages SPA 路由回退）
+
+### 优化
+- 期刊卡片布局引擎重构：`CARD_W=200` 固定宽度，自动计算列数，居中排列
+- 期刊窄屏优化：头条竖排、详情页图片缩小、字号调整
+- Electron 用 `createWebHashHistory`，Web 用 `createWebHistory`，自动适配
+
+### 修复
+- Web 版语音输入无法检测录音：`MediaRecorder` + 讯飞 ASR 格式不匹配 → 改用浏览器原生 `webkitSpeechRecognition`
+- 官网在线版按钮定位：从下载区移至首屏和顶栏导航
+- 期刊卡片随屏幕拉伸问题：改为固定宽度 + 居中对齐
+
+### 测试
+- SpeechRecognitionService 全部 18 个测试通过（Electron 11 + Browser 7）
+- `PlatformBridge.test.ts` 跨平台检测测试
+
+---
+
 ## v1.10.0 (2026-06-10)
 
 ### 新增
