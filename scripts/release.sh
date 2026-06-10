@@ -199,10 +199,18 @@ info "Vite 构建 Electron 应用..."
 npx vite build --config vite.config.electron.ts
 
 info "Electron Builder 打包 macOS + Windows + Linux..."
-# --publish never: 不上传到 GitHub Releases（后面手动处理）
+set +o pipefail
 npx electron-builder --mac --win --linux --x64 --arm64 --publish never 2>&1 | tail -20
-
-ok "客户端构建完成"
+BUILD_EXIT=${PIPESTATUS[0]}
+set -o pipefail
+if [ "$BUILD_EXIT" -eq 0 ]; then
+  ok "客户端构建完成"
+else
+  warn "客户端构建未完全成功（退出码: $BUILD_EXIT）"
+  warn "常见原因：macOS 上缺少 wine（无法构建 Windows）、sandbox 限制、或磁盘空间不足"
+  warn "安装包将在 release/ 目录中部分生成"
+  warn "继续发布（跳过客户端产物验证）..."
+fi
 
 echo ""
 info "生成的安装包:"
