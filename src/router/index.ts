@@ -1,11 +1,7 @@
-import { createRouter, createWebHistory, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 
-// Electron 用 hash 模式（file:// 协议不支持 history），Web/GitHub Pages 用 history
-const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI
-
-const history = isElectron
-  ? createWebHashHistory()
-  : createWebHistory('/language-learning-app/app/')
+// 统一使用 hash 模式，兼容 Electron（file:// 协议）和 Web/GitHub Pages 部署
+const history = createWebHashHistory()
 
 const routes = [
   {

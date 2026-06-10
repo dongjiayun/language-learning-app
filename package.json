@@ -1,6 +1,6 @@
 {
   "name": "doulingo-assist",
-  "version": "1.11.2",
+  "version": "1.11.3",
   "description": "外语口语学习助手 - Foreign Language Speaking Assistant",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -14,7 +14,7 @@
     "build": "node scripts/bump-version.mjs patch && node scripts/update-changelog.mjs && node scripts/generate-dmg-bg.mjs && ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ vite build --config vite.config.electron.ts && electron-builder",
     "build:win": "node scripts/build-win.mjs",
     "preview": "vite preview",
-    "build:web": "vite build && cp docs/app/index.html docs/app/404.html"
+    "build:web": "vite build"
   },
   "dependencies": {
     "@capacitor/android": "^5.7.8",
