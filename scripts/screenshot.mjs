@@ -90,7 +90,7 @@ async function main() {
     await sleep(2000)
 
     await page.evaluate(() => {
-      localStorage.setItem('doulingo_deepseek_api_key', 'sk-replaced')
+      localStorage.setItem('doulingo_deepseek_api_key', process.env.DEEPSEEK_API_KEY || '')
       localStorage.setItem('doulingo_target_lang', 'fr-FR')
       localStorage.setItem('doulingo_source_lang', 'zh-CN')
       localStorage.setItem('doulingo_theme', 'dark')
