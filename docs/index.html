@@ -1145,6 +1145,132 @@ footer a:hover { color: #40b0ff; }
   #lightbox-img { max-width: 100vw; max-height: 85vh; }
   .lightbox-close { top: 12px; right: 16px; font-size: 28px; }
 }
+
+/* ===== 黄金训练流程 ===== */
+.workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 36px;
+}
+.workflow-card {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  display: flex;
+  gap: 16px;
+  transition: border .2s, box-shadow .2s;
+}
+.workflow-card:hover {
+  border-color: rgba(255,255,255,0.15);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+}
+.workflow-index {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+.workflow-body { flex: 1; min-width: 0; }
+.workflow-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.workflow-time {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(29,155,240,0.1);
+  padding: 2px 8px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+.workflow-head h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+}
+.workflow-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 10px;
+}
+.workflow-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+.workflow-features li {
+  font-size: 12px;
+  color: var(--text-muted);
+  position: relative;
+  padding-left: 12px;
+}
+.workflow-features li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.5;
+}
+.workflow-principles {
+  margin-top: 32px;
+  padding: 24px 28px;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(29,155,240,0.06), rgba(10,132,255,0.03));
+  border: 0.5px solid rgba(29,155,240,0.1);
+}
+.workflow-principles-inner h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 16px;
+  text-align: center;
+}
+.principles-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.principle {
+  text-align: center;
+  padding: 8px 4px;
+}
+.principle strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+.principle span {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+@media (max-width: 640px) {
+  .workflow-grid { grid-template-columns: 1fr; }
+  .principles-list { grid-template-columns: repeat(2, 1fr); }
+}
+.mobile-only { display: none; }
+@media (max-width: 640px) {
+  .mobile-only { display: inline; }
+}
 </style>
 </head>
 <body>
@@ -1156,6 +1282,7 @@ footer a:hover { color: #40b0ff; }
     <div class="nav-links">
       <a href="#features">功能</a>
       <a href="#how-it-works">指引</a>
+      <a href="#workflow">流程</a>
       <a href="#about">大模型</a>
       <a href="#changelog">更新</a>
       <a href="https://github.com/dongjiayun/language-learning-app" target="_blank">GitHub</a>
@@ -1460,6 +1587,127 @@ footer a:hover { color: #40b0ff; }
         <div class="step">3</div>
         <h3>开始练习</h3>
         <p>进入对话、口语、阅读或写作模块，按需选择练习方式。AI 实时反馈，陪你从零到流利。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- 黄金训练流程 -->
+<section id="workflow" class="section">
+  <div class="inner">
+    <div class="section-label">学习流程</div>
+    <h2 style="text-align:center;">黄金训练流程。<br>每天 30 分钟，高效进阶。</h2>
+    <p class="section-sub" style="text-align:center; margin: 12px auto 0;">基于二语习得研究的科学训练闭环，<br class="mobile-only">让你的每一次练习都有成效。</p>
+
+    <div class="workflow-grid">
+      <div class="workflow-card fade-in">
+        <div class="workflow-index">01</div>
+        <div class="workflow-body">
+          <div class="workflow-head">
+            <span class="workflow-time">5′</span>
+            <h3>间隔复习</h3>
+          </div>
+          <p>快速回顾前一天的生词和错题。主动回忆比单纯重读有效 3 倍以上。</p>
+          <ul class="workflow-features">
+            <li>复习生词本</li>
+            <li>重做强化训练错题</li>
+            <li>标记不确定的明天再练</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="workflow-card fade-in">
+        <div class="workflow-index">02</div>
+        <div class="workflow-body">
+          <div class="workflow-head">
+            <span class="workflow-time">10′</span>
+            <h3>可理解输入</h3>
+          </div>
+          <p>听/读略高于当前水平的内容（i+1），理解大意而非每个词。材料要能听懂 70-80%。</p>
+          <ul class="workflow-features">
+            <li>AI 对话回复 + 翻译对照阅读</li>
+            <li>词汇期刊沉浸式阅读</li>
+            <li>划词查询不懂的表达</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="workflow-card fade-in">
+        <div class="workflow-index">03</div>
+        <div class="workflow-body">
+          <div class="workflow-head">
+            <span class="workflow-time">5′</span>
+            <h3>词汇积累</h3>
+          </div>
+          <p>摘录新表达，理解用法。用目标语言查询词典，建立语境记忆。</p>
+          <ul class="workflow-features">
+            <li>划词翻译 + 加入生词本</li>
+            <li>查看翻译和用法解释</li>
+            <li>每日 3-5 个即可</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="workflow-card fade-in">
+        <div class="workflow-index">04</div>
+        <div class="workflow-body">
+          <div class="workflow-head">
+            <span class="workflow-time">10′</span>
+            <h3>输出练习</h3>
+          </div>
+          <p>用刚学的内容做输出。口语跟读模仿语音语调，写作巩固新词用法。</p>
+          <ul class="workflow-features">
+            <li>口语练习 — shadowing 跟读</li>
+            <li>写作训练 — 用新词写 1-2 句</li>
+            <li>AI 实时反馈和优化建议</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="workflow-card fade-in">
+        <div class="workflow-index">05</div>
+        <div class="workflow-body">
+          <div class="workflow-head">
+            <span class="workflow-time">2′</span>
+            <h3>闭环回顾</h3>
+          </div>
+          <p>快速浏览今天所学，标记不确定的留到明天复习。精于复盘，事半功倍。</p>
+          <ul class="workflow-features">
+            <li>查看学习统计 &amp; 打卡</li>
+            <li>回顾当日生词</li>
+            <li>标记薄弱点</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="workflow-principles">
+      <div class="workflow-principles-inner">
+        <h4>核心原则</h4>
+        <div class="principles-list">
+          <div class="principle">
+            <strong>少量高频</strong>
+            <span>每天 30 分钟 &gt; 每周一次 3 小时</span>
+          </div>
+          <div class="principle">
+            <strong>输入先行</strong>
+            <span>先大量听/读，再开口说。听不懂就说不出</span>
+          </div>
+          <div class="principle">
+            <strong>可理解+1</strong>
+            <span>材料听懂 70-80%，太难/太简单都没效果</span>
+          </div>
+          <div class="principle">
+            <strong>主动回忆</strong>
+            <span>测试自己比单纯重读有效得多</span>
+          </div>
+          <div class="principle">
+            <strong>间隔重复</strong>
+            <span>第1天 → 第3天 → 第7天 → 第30天复习</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
