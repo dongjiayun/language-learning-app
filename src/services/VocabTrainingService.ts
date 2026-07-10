@@ -301,17 +301,30 @@ ${history.slice(-10).join('\n---\n')}
         }),
       })
 
+      if (!response.ok) {
+        const errBody = await response.text().catch(() => '')
+        console.error(`[VocabTrainingService] 翻译 API 请求失败 (${response.status}): ${errBody}`)
+        throw new Error(`API 请求失败 (${response.status})`)
+      }
+
       const data = await response.json()
       onUsage?.(data.usage?.prompt_tokens || 0, data.usage?.completion_tokens || 0)
       const content = data.choices?.[0]?.message?.content
-      if (!content) return word
+      if (!content) {
+        console.error('[VocabTrainingService] 翻译 API 返回内容为空')
+        throw new Error('API 返回内容为空')
+      }
 
       const jsonStr = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
       const parsed = JSON.parse(jsonStr)
-      if (!parsed.translation) return word
+      if (!parsed.translation) {
+        console.error('[VocabTrainingService] 翻译 API JSON 缺少 translation 字段:', JSON.stringify(parsed))
+        throw new Error('API 返回 JSON 缺少 translation 字段')
+      }
       return `${parsed.translation}${parsed.explanation ? '\n' + parsed.explanation : ''}`
-    } catch {
-      return word
+    } catch (err) {
+      console.error('[VocabTrainingService] 翻译异常:', err)
+      throw err
     }
   }
 

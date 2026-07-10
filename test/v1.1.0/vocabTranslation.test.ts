@@ -133,62 +133,56 @@ describe('VocabTrainingService.translateWord', () => {
       expect(result).toBe('你好')
     })
 
-    it('响应 choices 数组为空时应返回原文', async () => {
+    it('响应 choices 数组为空时应抛出异常', async () => {
       service.setApiKey(TEST_KEY)
       mockFetch.mockResolvedValue(mockApiResponse([]))
 
-      const result = await service.translateWord('bonjour', 'fr-FR', 'zh-CN')
-      expect(result).toBe('bonjour')
+      await expect(service.translateWord('bonjour', 'fr-FR', 'zh-CN')).rejects.toThrow()
     })
 
-    it('响应缺少 content 时应返回原文', async () => {
+    it('响应缺少 content 时应抛出异常', async () => {
       service.setApiKey(TEST_KEY)
       mockFetch.mockResolvedValue(mockApiResponse([
         { message: {} }
       ]))
 
-      const result = await service.translateWord('bonjour', 'fr-FR', 'zh-CN')
-      expect(result).toBe('bonjour')
+      await expect(service.translateWord('bonjour', 'fr-FR', 'zh-CN')).rejects.toThrow()
     })
 
-    it('API 返回非 JSON 内容时应返回原文', async () => {
+    it('API 返回非 JSON 内容时应抛出异常', async () => {
       service.setApiKey(TEST_KEY)
       mockFetch.mockResolvedValue(mockApiResponse([
         { message: { content: '这不是 JSON' } }
       ]))
 
-      const result = await service.translateWord('bonjour', 'fr-FR', 'zh-CN')
-      expect(result).toBe('bonjour')
+      await expect(service.translateWord('bonjour', 'fr-FR', 'zh-CN')).rejects.toThrow()
     })
 
-    it('API 返回的 JSON 缺少 translation 字段时应返回原文', async () => {
+    it('API 返回的 JSON 缺少 translation 字段时应抛出异常', async () => {
       service.setApiKey(TEST_KEY)
       mockFetch.mockResolvedValue(mockApiResponse([
         { message: { content: '{"foo":"bar"}' } }
       ]))
 
-      const result = await service.translateWord('bonjour', 'fr-FR', 'zh-CN')
-      expect(result).toBe('bonjour')
+      await expect(service.translateWord('bonjour', 'fr-FR', 'zh-CN')).rejects.toThrow()
     })
 
-    it('网络请求异常时应返回原文（不抛异常）', async () => {
+    it('网络请求异常时应抛出异常', async () => {
       service.setApiKey(TEST_KEY)
       mockFetch.mockRejectedValue(new Error('Network error'))
 
-      const result = await service.translateWord('bonjour', 'fr-FR', 'zh-CN')
-      expect(result).toBe('bonjour')
+      await expect(service.translateWord('bonjour', 'fr-FR', 'zh-CN')).rejects.toThrow()
     })
 
-    it('API 返回 HTTP 错误时不应崩溃（如 401/402/500）', async () => {
+    it('API 返回 HTTP 错误时（如 401/402/500）应抛出异常', async () => {
       service.setApiKey(TEST_KEY)
       mockFetch.mockResolvedValue({
         ok: false,
         status: 402,
-        json: vi.fn().mockRejectedValue(new Error('invalid json')),
+        text: vi.fn().mockResolvedValue('insufficient balance'),
       })
 
-      const result = await service.translateWord('bonjour', 'fr-FR', 'zh-CN')
-      expect(result).toBe('bonjour')
+      await expect(service.translateWord('bonjour', 'fr-FR', 'zh-CN')).rejects.toThrow()
     })
   })
 
@@ -252,8 +246,7 @@ describe('VocabTrainingService.translateWord', () => {
       mockFetch.mockRejectedValue(new Error('fail'))
 
       const onUsage = vi.fn()
-      await service.translateWord('bonjour', 'fr-FR', 'zh-CN', onUsage)
-
+      await expect(service.translateWord('bonjour', 'fr-FR', 'zh-CN', onUsage)).rejects.toThrow()
       expect(onUsage).not.toHaveBeenCalled()
     })
 
@@ -383,9 +376,7 @@ describe('appStore.translateVocabWord', () => {
 
   describe('异常处理', () => {
     it('API 调用失败时 translateVocabWord 不抛异常，状态正确', async () => {
-      // VocabTrainingService.translateWord 内部有 try-catch，不会抛到 store 层
-      // 它会返回原文，store 层收到原文作为翻译结果
-      // 所以 vocabSelectedTranslation 会被设为原文（而不是 "翻译失败，请重试"）
+      // translateWord 会抛出异常，store 的 catch 捕获并设置 "翻译失败，请重试"
       mockFetch
         .mockImplementationOnce(() => Promise.resolve(mockBalanceResponse()))
         .mockRejectedValue(new Error('Network error'))
@@ -393,8 +384,8 @@ describe('appStore.translateVocabWord', () => {
       const store = useAppStore()
       await store.translateVocabWord('bonjour')
 
-      // translateWord 内部 catch 返回原文，store 层不会进入 catch 分支
-      expect(store.vocabSelectedTranslation).toBe('bonjour')
+      // store 的 catch 分支捕获异常
+      expect(store.vocabSelectedTranslation).toBe('翻译失败，请重试')
       expect(store.vocabTranslating).toBe(false)
     })
 
@@ -413,10 +404,10 @@ describe('appStore.translateVocabWord', () => {
 
       const store = useAppStore()
 
-      // 第一次调用（translateWord 内部 catch 返回原文）
+      // 第一次调用（translateWord 抛异常，store catch）
       await store.translateVocabWord('bonjour')
       expect(store.vocabTranslating).toBe(false)
-      expect(store.vocabSelectedTranslation).toBe('bonjour') // 原样返回
+      expect(store.vocabSelectedTranslation).toBe('翻译失败，请重试')
 
       // 第二次调用
       await store.translateVocabWord('salut')
