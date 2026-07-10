@@ -1146,217 +1146,149 @@ footer a:hover { color: #40b0ff; }
   .lightbox-close { top: 12px; right: 16px; font-size: 28px; }
 }
 
-/* ===== 黄金训练流程 — 时间线瀑布流 ===== */
-.wf-flow {
-  position: relative;
-  max-width: 720px;
-  margin: 48px auto 0;
-  padding-left: 80px;
-}
-.wf-step {
-  position: relative;
-  margin-bottom: 0;
-}
-.wf-marker {
-  position: absolute;
-  left: -80px;
-  top: 0;
-  width: 80px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.wf-dot {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 800;
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-  position: relative;
-  z-index: 2;
-  flex-shrink: 0;
-  transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s;
-}
-.wf-step:hover .wf-dot {
-  transform: scale(1.15);
-  box-shadow: 0 6px 24px rgba(0,0,0,0.2);
-}
-.wf-line {
-  width: 2px;
-  flex: 1;
-  min-height: 40px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
-  margin: 4px 0;
-}
-.wf-line-last {
-  background: linear-gradient(180deg, rgba(255,255,255,0.15), transparent);
-  min-height: 20px;
+/* ===== 黄金训练流程 — Apple 风格卡片网格 ===== */
+.wf-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 32px;
 }
 .wf-card {
   background: var(--bg-card);
   border: 0.5px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
+  border-radius: 16px;
+  padding: 20px;
+  transition: all .25s cubic-bezier(.16,1,.3,1);
   display: flex;
-  margin-bottom: 28px;
-  transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s, border-color .3s;
+  flex-direction: column;
+  position: relative;
 }
 .wf-card:hover {
-  transform: translateX(4px);
   border-color: rgba(255,255,255,0.12);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.07);
+  transform: translateY(-2px);
 }
-.wf-card-accent {
-  width: 4px;
-  flex-shrink: 0;
+.wf-num {
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1;
+  color: rgba(255,255,255,0.06);
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  pointer-events: none;
+  user-select: none;
 }
-.wf-card-body {
-  padding: 20px 24px;
-  flex: 1;
-  min-width: 0;
-}
-.wf-card-top {
+.wf-meta {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 14px;
 }
-.wf-time {
+.wf-badge {
   font-size: 11px;
   font-weight: 700;
-  color: rgba(255,255,255,0.5);
-  background: rgba(255,255,255,0.06);
+  color: #fff;
+  background: var(--badge, var(--accent));
   padding: 2px 8px;
   border-radius: 20px;
+  line-height: 1.4;
 }
 .wf-tag {
   font-size: 11px;
   font-weight: 600;
-  color: var(--accent);
-  background: rgba(29,155,240,0.1);
+  color: var(--tag, var(--accent));
+  background: color-mix(in srgb, var(--tag, var(--accent)) 15%, transparent);
   padding: 2px 8px;
   border-radius: 20px;
+  line-height: 1.4;
 }
-.wf-card-body h3 {
-  font-size: 17px;
+@supports not (color: color-mix(in srgb, red, transparent)) {
+  .wf-tag { opacity: 0.75; }
+}
+.wf-card h3 {
+  font-size: 15px;
   font-weight: 700;
   margin: 0 0 6px;
   color: var(--text-primary);
 }
-.wf-card-body p {
-  font-size: 13px;
+.wf-card p {
+  font-size: 12.5px;
   color: var(--text-secondary);
-  line-height: 1.6;
-  margin: 0 0 12px;
+  line-height: 1.55;
+  margin: 0 0 auto;
+  flex: 1;
 }
-.wf-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.wf-tags span {
+.wf-foot {
   font-size: 11px;
   color: var(--text-muted);
-  padding: 2px 10px;
-  border-radius: 20px;
-  border: 0.5px solid var(--border);
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--border);
+}
+.wf-total {
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin-top: 20px;
+  padding: 12px 20px;
+  border-radius: 12px;
   background: rgba(255,255,255,0.03);
+  border: 0.5px solid var(--border);
 }
-.wf-summary {
-  margin-top: 16px;
-  margin-bottom: 40px;
-  padding: 16px 24px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(29,155,240,0.08), rgba(10,132,255,0.04));
-  border: 0.5px solid rgba(29,155,240,0.12);
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.wf-total strong {
+  color: var(--accent);
+  font-weight: 700;
 }
-.wf-summary-icon {
-  font-size: 24px;
-  flex-shrink: 0;
+
+/* 原则 */
+.wf-principles {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
 }
-.wf-summary-text strong {
+.wf-principle {
+  padding: 14px 8px;
+  border-radius: 12px;
+  text-align: center;
+  border: 0.5px solid var(--border);
+  background: rgba(255,255,255,0.02);
+  transition: background .2s;
+}
+.wf-principle:hover {
+  background: rgba(255,255,255,0.04);
+}
+.wf-principle svg {
   display: block;
-  font-size: 14px;
+  margin: 0 auto 6px;
+  width: 20px;
+  height: 20px;
+}
+.wf-principle strong {
+  display: block;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 2px;
 }
-.wf-summary-text span {
-  display: block;
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.5;
-}
-
-/* 核心原则 */
-.wf-principles {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 28px 32px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
-  border: 0.5px solid var(--border);
-}
-.wf-principles h4 {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-align: center;
-  margin: 0 0 20px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-.wf-principles-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 16px;
-}
-.wf-principle {
-  text-align: center;
-  padding: 12px 6px;
-  border-radius: 10px;
-  transition: background .2s;
-}
-.wf-principle:hover {
-  background: rgba(255,255,255,0.03);
-}
-.wf-principle-icon {
-  display: block;
-  font-size: 22px;
-  margin-bottom: 6px;
-}
-.wf-principle strong {
-  display: block;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 4px;
-}
 .wf-principle span {
   display: block;
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--text-muted);
-  line-height: 1.4;
+  line-height: 1.3;
 }
 
 /* 移动端适配 */
-@media (max-width: 640px) {
-  .wf-flow { padding-left: 56px; }
-  .wf-marker { left: -56px; width: 56px; }
-  .wf-dot { width: 36px; height: 36px; font-size: 13px; }
-  .wf-card-body { padding: 16px 18px; }
-  .wf-card-body h3 { font-size: 15px; }
-  .wf-principles-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .wf-principles { padding: 20px 16px; }
-  .wf-summary { flex-direction: column; text-align: center; gap: 8px; padding: 14px 18px; }
+@media (max-width: 768px) {
+  .wf-grid { grid-template-columns: repeat(2, 1fr); }
+  .wf-principles { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 500px) {
+  .wf-grid { grid-template-columns: 1fr; }
+  .wf-principles { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .wf-card { padding: 16px; }
+  .wf-num { font-size: 32px; }
 }
 .mobile-only { display: none; }
 @media (max-width: 640px) {
@@ -1690,167 +1622,92 @@ footer a:hover { color: #40b0ff; }
   <div class="inner">
     <div class="section-label">学习流程</div>
     <h2 style="text-align:center;">黄金训练流程。<br>每天 30 分钟，高效进阶。</h2>
-    <p class="section-sub" style="text-align:center; margin: 12px auto 0;">基于二语习得研究的科学训练闭环，<br class="mobile-only">让你的每一次练习都有成效。</p>
+    <p class="section-sub" style="text-align:center; margin: 8px auto 0; font-size: 13px;">基于<a href="https://baike.baidu.com/item/%E8%89%BE%E5%AE%BE%E6%B5%A9%E6%96%AF%E9%81%97%E5%BF%98%E6%9B%B2%E7%BA%BF" target="_blank" style="color:var(--accent);">艾宾浩斯记忆曲线</a> · <a href="https://baike.baidu.com/item/%E8%BE%93%E5%85%A5%E5%81%87%E8%AF%B4" target="_blank" style="color:var(--accent);">克拉申输入假说</a> · <a href="https://baike.baidu.com/item/%E9%98%B4%E5%BD%B1%E8%B7%9F%E8%AF%BB%E6%B3%95" target="_blank" style="color:var(--accent);">阿圭列斯影子跟读法</a> 三大科学方法论</p>
 
-    <div class="wf-flow">
-      <!-- Step 1 -->
-      <div class="wf-step fade-in">
-        <div class="wf-marker">
-          <div class="wf-dot" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">1</div>
-          <div class="wf-line"></div>
+    <div class="wf-grid">
+      <div class="wf-card fade-in">
+        <div class="wf-num">01</div>
+        <div class="wf-meta">
+          <span class="wf-badge" style="--badge:#4facfe;">5′</span>
+          <span class="wf-tag" style="--tag:#4facfe;">间隔重复</span>
         </div>
-        <div class="wf-card">
-          <div class="wf-card-accent" style="background: linear-gradient(90deg, #4facfe, #00f2fe);"></div>
-          <div class="wf-card-body">
-            <div class="wf-card-top">
-              <span class="wf-time">5 分钟</span>
-              <span class="wf-tag">复习</span>
-            </div>
-            <h3>间隔复习</h3>
-            <p>快速回顾前一天的生词和错题。<br>主动回忆比单纯重读有效 3 倍以上。</p>
-            <div class="wf-tags">
-              <span>复习生词本</span>
-              <span>重做错题</span>
-              <span>标记薄弱点</span>
-            </div>
-          </div>
-        </div>
+        <h3>间隔复习</h3>
+        <p>快速回顾昨日生词错题，主动回忆有效减少遗忘。</p>
+        <div class="wf-foot">复习生词本 · 重做错题 · 标记薄弱点</div>
       </div>
 
-      <!-- Step 2 -->
-      <div class="wf-step fade-in">
-        <div class="wf-marker">
-          <div class="wf-dot" style="background: linear-gradient(135deg, #a18cd1, #fbc2eb);">2</div>
-          <div class="wf-line"></div>
+      <div class="wf-card fade-in">
+        <div class="wf-num">02</div>
+        <div class="wf-meta">
+          <span class="wf-badge" style="--badge:#a18cd1;">10′</span>
+          <span class="wf-tag" style="--tag:#a18cd1;">可理解输入</span>
         </div>
-        <div class="wf-card">
-          <div class="wf-card-accent" style="background: linear-gradient(90deg, #a18cd1, #fbc2eb);"></div>
-          <div class="wf-card-body">
-            <div class="wf-card-top">
-              <span class="wf-time">10 分钟</span>
-              <span class="wf-tag">输入</span>
-            </div>
-            <h3>可理解输入</h3>
-            <p>听/读略高于当前水平的内容（i+1），<br>理解大意而非每个词，听懂 70-80%。</p>
-            <div class="wf-tags">
-              <span>AI 对话阅读</span>
-              <span>词汇期刊</span>
-              <span>划词查询</span>
-            </div>
-          </div>
-        </div>
+        <h3>可理解输入</h3>
+        <p>阅读听懂 70-80% 的内容（i+1），在语境中自然习得语言。</p>
+        <div class="wf-foot">AI 对话 · 词汇期刊 · 划词查询</div>
       </div>
 
-      <!-- Step 3 -->
-      <div class="wf-step fade-in">
-        <div class="wf-marker">
-          <div class="wf-dot" style="background: linear-gradient(135deg, #f093fb, #f5576c);">3</div>
-          <div class="wf-line"></div>
+      <div class="wf-card fade-in">
+        <div class="wf-num">03</div>
+        <div class="wf-meta">
+          <span class="wf-badge" style="--badge:#f093fb;">5′</span>
+          <span class="wf-tag" style="--tag:#f093fb;">词汇积累</span>
         </div>
-        <div class="wf-card">
-          <div class="wf-card-accent" style="background: linear-gradient(90deg, #f093fb, #f5576c);"></div>
-          <div class="wf-card-body">
-            <div class="wf-card-top">
-              <span class="wf-time">5 分钟</span>
-              <span class="wf-tag">积累</span>
-            </div>
-            <h3>词汇积累</h3>
-            <p>摘录新表达，理解用法。<br>用目标语言查询词典，建立语境记忆。</p>
-            <div class="wf-tags">
-              <span>划词翻译</span>
-              <span>加入生词本</span>
-              <span>每日 3-5 个</span>
-            </div>
-          </div>
-        </div>
+        <h3>词汇积累</h3>
+        <p>摘录新表达并加入生词本，通过语境加深理解和记忆。</p>
+        <div class="wf-foot">划词翻译 · 加入生词本 · 每日 3-5 个</div>
       </div>
 
-      <!-- Step 4 -->
-      <div class="wf-step fade-in">
-        <div class="wf-marker">
-          <div class="wf-dot" style="background: linear-gradient(135deg, #43e97b, #38f9d7);">4</div>
-          <div class="wf-line"></div>
+      <div class="wf-card fade-in">
+        <div class="wf-num">04</div>
+        <div class="wf-meta">
+          <span class="wf-badge" style="--badge:#43e97b;">10′</span>
+          <span class="wf-tag" style="--tag:#43e97b;">影子跟读</span>
         </div>
-        <div class="wf-card">
-          <div class="wf-card-accent" style="background: linear-gradient(90deg, #43e97b, #38f9d7);"></div>
-          <div class="wf-card-body">
-            <div class="wf-card-top">
-              <span class="wf-time">10 分钟</span>
-              <span class="wf-tag">输出</span>
-            </div>
-            <h3>输出练习</h3>
-            <p>用刚学的内容做输出。<br>口语跟读模仿语音语调，写作巩固新词用法。</p>
-            <div class="wf-tags">
-              <span>口语跟读</span>
-              <span>写作训练</span>
-              <span>AI 实时反馈</span>
-            </div>
-          </div>
-        </div>
+        <h3>输出练习</h3>
+        <p>跟读模仿母语者的语音语调，用新词造句巩固记忆。</p>
+        <div class="wf-foot">口语跟读 · 写作训练 · AI 实时反馈</div>
       </div>
 
-      <!-- Step 5 -->
-      <div class="wf-step fade-in">
-        <div class="wf-marker">
-          <div class="wf-dot" style="background: linear-gradient(135deg, #ffecd2, #fcb69f); color: #333;">5</div>
-          <div class="wf-line wf-line-last"></div>
+      <div class="wf-card fade-in">
+        <div class="wf-num">05</div>
+        <div class="wf-meta">
+          <span class="wf-badge" style="--badge:#fcb69f;color:#333;">2′</span>
+          <span class="wf-tag" style="--tag:#fcb69f;color:#333;">闭环回顾</span>
         </div>
-        <div class="wf-card">
-          <div class="wf-card-accent" style="background: linear-gradient(90deg, #ffecd2, #fcb69f);"></div>
-          <div class="wf-card-body">
-            <div class="wf-card-top">
-              <span class="wf-time">2 分钟</span>
-              <span class="wf-tag">复盘</span>
-            </div>
-            <h3>闭环回顾</h3>
-            <p>快速浏览今天所学，<br>标记不确定的留到明天复习。精于复盘，事半功倍。</p>
-            <div class="wf-tags">
-              <span>学习统计</span>
-              <span>回顾生词</span>
-              <span>标记薄弱点</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Summary node -->
-      <div class="wf-summary fade-in">
-        <div class="wf-summary-icon">🎯</div>
-        <div class="wf-summary-text">
-          <strong>每日总计 ≈ 32 分钟</strong>
-          <span>间隔复习 5′ → 可理解输入 10′ → 词汇积累 5′ → 输出练习 10′ → 闭环回顾 2′</span>
-        </div>
+        <h3>闭环回顾</h3>
+        <p>快速浏览今日所学，标记不确定的内容留待隔天复习。</p>
+        <div class="wf-foot">学习统计 · 回顾生词 · 打卡标记</div>
       </div>
     </div>
 
+    <div class="wf-total">每日总计 ≈ <strong>32 分钟</strong>  ·  间隔复习 5′ → 输入 10′ → 积累 5′ → 输出 10′ → 回顾 2′</div>
+
     <div class="wf-principles">
-      <h4>核心原则</h4>
-      <div class="wf-principles-grid">
-        <div class="wf-principle">
-          <span class="wf-principle-icon">⚡</span>
-          <strong>少量高频</strong>
-          <span>每天 30 分钟 &gt; 每周一次 3 小时</span>
-        </div>
-        <div class="wf-principle">
-          <span class="wf-principle-icon">📖</span>
-          <strong>输入先行</strong>
-          <span>先大量听/读，再开口说</span>
-        </div>
-        <div class="wf-principle">
-          <span class="wf-principle-icon">📈</span>
-          <strong>可理解+1</strong>
-          <span>材料听懂 70-80%，太难/太简单都没效果</span>
-        </div>
-        <div class="wf-principle">
-          <span class="wf-principle-icon">🧠</span>
-          <strong>主动回忆</strong>
-          <span>测试自己比单纯重读有效得多</span>
-        </div>
-        <div class="wf-principle">
-          <span class="wf-principle-icon">🔄</span>
-          <strong>间隔重复</strong>
-          <span>第1天 → 第3天 → 第7天 → 第30天</span>
-        </div>
+      <div class="wf-principle">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.9 7.8L19 8.6L14.5 13L15.8 19L10 15.8L4.2 19L5.5 13L1 8.6L7.1 7.8L10 2Z" fill="#FFD43B"/></svg>
+        <strong>少量高频</strong>
+        <span>每天 30′ &gt; 每周 3h</span>
+      </div>
+      <div class="wf-principle">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3C6.13 3 3 6.13 3 10C3 13.87 6.13 17 10 17C13.87 17 17 13.87 17 10C17 6.13 13.87 3 10 3ZM14 11H9V6H11V9H14V11Z" fill="#4facfe"/></svg>
+        <strong>输入先行</strong>
+        <span>先听读再开口</span>
+      </div>
+      <div class="wf-principle">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 1L13 7L19 8L14.5 12.5L15.5 19L10 16L4.5 19L5.5 12.5L1 8L7 7L10 1Z" fill="#a18cd1"/></svg>
+        <strong>可理解+1</strong>
+        <span>听懂 70-80%</span>
+      </div>
+      <div class="wf-principle">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M16 2H4C2.9 2 2 2.9 2 4V20L6 16H16C17.1 16 18 15.1 18 14V4C18 2.9 17.1 2 16 2Z" fill="#43e97b"/></svg>
+        <strong>主动回忆</strong>
+        <span>自测 &gt; 重读</span>
+      </div>
+      <div class="wf-principle">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 2C14.2 2 16 3.8 16 6C16 7.4 15.3 8.6 14.3 9.4C16.6 10.2 18.5 12 19 14.5C19.2 15.8 19 17 18.5 18H1.5C1 17 0.8 15.8 1 14.5C1.5 12 3.4 10.2 5.7 9.4C4.7 8.6 4 7.4 4 6C4 3.8 5.8 2 8 2C9.4 2 10.6 2.8 11.4 4H8.6C8.2 3.4 7.6 3 7 3C5.9 3 5 3.9 5 5C5 6.1 5.9 7 7 7C7.6 7 8.2 6.7 8.6 6.2L9.8 7.4C8.9 8.2 8 8 8 8C7.5 8 6.8 7.9 6.2 7.6C5 8.4 4.1 9.6 3.8 11H16.2C15.9 9.6 15 8.4 13.8 7.6C13.2 7.9 12.5 8 12 8C12 8 11.1 8.2 10.2 7.4L11.4 6.2C11.8 6.7 12.4 7 13 7C14.1 7 15 6.1 15 5C15 3.9 14.1 3 13 3C12.4 3 11.8 3.4 11.4 4H10.6C9.8 2.8 10.8 2 12 2Z" fill="#f093fb"/></svg>
+        <strong>间隔重复</strong>
+        <span>1→3→7→30 天</span>
       </div>
     </div>
   </div>
