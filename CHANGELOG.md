@@ -1,5 +1,16 @@
 # 更新日志
 
+## v1.11.6 (2026-07-11)
+
+### 修复
+- 【划词翻译】API 失败时静默返回原文，改为抛出异常：`VocabTrainingService.translateWord()` 未检查 `response.ok`，API 返回 402/429 等错误时静默返回原文，store 误以为翻译成功
+- 【官网】新增 BUILD.md 固化构建发布全流程
+
+### 测试
+- 更新 `vocabTranslation.test.ts` 中 7 个 API 失败用例，改为 `rejects.toThrow()` 验证
+
+---
+
 ## v1.11.5 (2026-07-11)
 
 ### 修复
