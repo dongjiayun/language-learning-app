@@ -8,3 +8,4 @@ release/
 android/
 *.exe
 *.ico
+.env

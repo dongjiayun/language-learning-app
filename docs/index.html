@@ -1173,7 +1173,7 @@ footer a:hover { color: #40b0ff; }
     <div class="orb"></div>
   </div>
   <div class="hero-content">
-    <div class="badge">✨ v1.11.1 · 已支持 macOS & Windows & Android & Web</div>
+    <div class="badge">✨ v1.11.5 · 已支持 macOS & Windows & Android & Web</div>
     <h1>
       <span class="line">用 AI 打破</span>
       <span class="line gradient">语言壁垒</span>
@@ -1540,7 +1540,7 @@ footer a:hover { color: #40b0ff; }
           <span>Intel 版适配中</span>
         </div>
         <div class="os-size-row">
-          <a href="https://github.com/dongjiayun/language-learning-app/releases/download/v1.11.1/LanguageLearner-1.11.1-arm64.dmg" class="os-size">⬇ Apple Silicon · 92 MB</a>
+          <a href="https://github.com/dongjiayun/language-learning-app/releases/download/v1.11.5/LanguageLearner-1.11.5-arm64.dmg" class="os-size">⬇ Apple Silicon · 97 MB</a>
           <span class="os-badge">Intel 版开发中</span>
         </div>
         <div class="os-tip">
@@ -1548,7 +1548,7 @@ footer a:hover { color: #40b0ff; }
           <div class="os-tip-cmd">sudo xattr -rd com.apple.quarantine</div>
         </div>
       </div>
-      <a href="https://github.com/dongjiayun/language-learning-app/releases/download/v1.11.1/LanguageLearner-Setup-1.11.1.exe" class="download-card fade-in">
+      <a href="https://github.com/dongjiayun/language-learning-app/releases/download/v1.11.5/LanguageLearner-Setup-1.11.5.exe" class="download-card fade-in">
         <span class="os-icon">🪟</span>
         <div class="os-name">Windows</div>
         <div class="os-sub">Windows 10/11 · 64-bit</div>
@@ -1559,7 +1559,7 @@ footer a:hover { color: #40b0ff; }
         </div>
         <span class="os-size">⬇ 下载 · 76 MB</span>
       </a>
-      <a href="https://github.com/dongjiayun/language-learning-app/releases/download/v1.11.1/LanguageLearner-1.11.1.apk" class="download-card fade-in">
+      <a href="https://github.com/dongjiayun/language-learning-app/releases/download/v1.11.5/LanguageLearner-1.11.5.apk" class="download-card fade-in">
         <span class="os-icon">📱</span>
         <div class="os-name">Android</div>
         <div class="os-sub">已上线 · Android 10+ · arm64-v8a</div>
@@ -1583,6 +1583,17 @@ footer a:hover { color: #40b0ff; }
     <h2>持续迭代，<br>不断进化。</h2>
     <p class="section-sub" style="margin: 12px auto 36px;">保持高频更新，倾听用户反馈，让产品越来越好用。</p>
     <div class="changelog-list">
+      <div class="changelog-entry fade-in">
+        <div class="version">
+          <span class="tag">v1.11.5</span>
+          <span class="date">2026年7月11日</span>
+        </div>
+        <ul>
+          <li>修复划词翻译 API Key 已配置但仍无法使用的 Bug（getApiKey 增加 localStorage 回退）</li>
+          <li>修复翻译接口 JSON 缺失 translation 字段时返回 "undefined" 字符串的问题</li>
+          <li>新增划词翻译 30 个完整测试用例覆盖</li>
+        </ul>
+      </div>
       <div class="changelog-entry fade-in">
         <div class="version">
           <span class="tag">v1.11.1</span>

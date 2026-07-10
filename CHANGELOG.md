@@ -1,5 +1,19 @@
 # 更新日志
 
+## v1.11.5 (2026-07-11)
+
+### 修复
+- 【划词翻译】配置 API Key 后划词翻译仍无法使用：`appStore.getApiKey()` 在 `frenchResponse` 未初始化时返回空字符串（增加 localStorage 回退）
+- 【划词翻译】`VocabTrainingService.translateWord()` 未校验 JSON 中 `translation` 字段是否存在，API 返回异常格式时拼接出 `"undefined"` 字符串
+
+### 测试
+- 新增划词翻译完整测试套件 `vocabTranslation.test.ts`，覆盖 30 个测试用例：
+  - `VocabTrainingService.translateWord`：API key 校验、正常解析、Markdown 清洗、异常响应（空 choices/缺 content/非 JSON/缺 translation/网络异常/HTTP 错误）、语言映射、onUsage 回调
+  - `appStore.translateVocabWord`：边界条件、API key 获取、翻译状态管理、异常处理
+  - `dismissVocabTranslation`、`getApiKey` 间接测试、端到端流程
+
+---
+
 ## v1.11.4 (2026-06-11)
 
 ### 修复

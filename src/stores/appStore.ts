@@ -816,8 +816,8 @@ export const useAppStore = defineStore('app', () => {
   }
 
   function getApiKey(): string {
-    if (!frenchResponse) return ''
-    return frenchResponse.getApiKey()
+    if (frenchResponse) return frenchResponse.getApiKey()
+    return localStorage.getItem(STORAGE_KEY_API) || ''
   }
 
   function setSourceLang(lang: string) {

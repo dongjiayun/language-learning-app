@@ -308,6 +308,7 @@ ${history.slice(-10).join('\n---\n')}
 
       const jsonStr = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
       const parsed = JSON.parse(jsonStr)
+      if (!parsed.translation) return word
       return `${parsed.translation}${parsed.explanation ? '\n' + parsed.explanation : ''}`
     } catch {
       return word
