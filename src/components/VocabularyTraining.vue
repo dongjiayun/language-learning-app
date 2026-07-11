@@ -1358,6 +1358,11 @@ function handleClearAllJournals() {
 
   .cat-strip {
     padding: 6px 12px;
+    scroll-snap-type: x mandatory;
+    gap: 4px;
+  }
+  .cat-strip .cat-chip {
+    scroll-snap-align: start;
   }
 
   .confirm-modal {
@@ -1405,6 +1410,10 @@ function handleClearAllJournals() {
     padding: 0 10px 8px;
   }
 
+  .progress-container {
+    width: min(280px, calc(100vw - 64px));
+  }
+
   .error-banner {
     margin: 0 10px 6px;
     padding: 6px 8px;
@@ -1417,7 +1426,7 @@ function handleClearAllJournals() {
 
   .np-hl-img {
     width: 100%;
-    height: 100px;
+    height: 120px;
   }
 
   .np-hl-body {
@@ -1433,6 +1442,11 @@ function handleClearAllJournals() {
   .np-hl-summary {
     font-size: 12px;
     -webkit-line-clamp: 2;
+  }
+
+  .np-cell:active {
+    transform: scale(.98);
+    border-color: var(--accent);
   }
 
   .detail-img {
@@ -1466,6 +1480,63 @@ function handleClearAllJournals() {
   .np-cell-img {
     min-height: 70px;
     height: 48%;
+  }
+}
+
+/* 极小屏（< 360px）额外优化 */
+@media (max-width: 360px) {
+  .masthead-title {
+    font-size: 17px;
+  }
+
+  .masthead {
+    padding: 8px 8px 6px;
+  }
+
+  .cat-strip {
+    padding: 4px 8px;
+  }
+
+  .vocab-bar-right {
+    gap: 4px;
+  }
+
+  .vocab-tool-btn {
+    padding: 4px 6px;
+    font-size: 10px;
+    gap: 2px;
+  }
+
+  .np-hl-img {
+    height: 100px;
+  }
+
+  .np-hl-body {
+    padding: 8px 10px;
+  }
+
+  .np-hl-title {
+    font-size: 14px;
+  }
+
+  .np-cell-body {
+    padding: 6px 8px;
+  }
+
+  .np-cell-title {
+    font-size: 12px;
+  }
+
+  .newspaper-scroll {
+    padding: 0 6px 16px;
+  }
+
+  .level-badge {
+    gap: 4px;
+  }
+
+  .level-label {
+    font-size: 11px;
   }
 }
 </style>
