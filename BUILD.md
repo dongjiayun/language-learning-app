@@ -183,3 +183,59 @@ gh release create "v<version>" \
 2. **Windows 交叉编译**：macOS 上需 electron-builder 缓存的 wine（`~/Library/Caches/electron-builder/wine-*`）
 3. **GitHub Pages**：推送后需等待 1-5 分钟部署生效
 4. **gh CLI**：Release 创建依赖 `gh auth login`，Token 需要 `repo` 和 `workflow` 权限
+
+---
+
+## 踩坑记录
+
+### 1. macOS 26+ V8 CodeRange 崩溃
+
+**现象**：App 启动即崩溃，报错 `Fatal process out of memory: Failed to reserve virtual memory for CodeRange`
+
+**原因**：macOS 26 的虚拟内存布局变更，V8 JIT 的 CodeRange 无法分配大块连续虚拟内存。Electron 28 ~ 43 均受影响。
+
+**修复**：在 `package.json` 的 `mac.extendInfo` 中添加：
+
+```json
+"ElectronCommandLine.switches": ["--js-flags=jitless"]
+```
+
+这会禁用 V8 JIT 编译，绕过 CodeRange 分配。对 UI 应用性能影响可忽略。
+
+> 命令行验证：`/Applications/LanguageLearner.app/Contents/MacOS/LanguageLearner --no-sandbox --js-flags="--jitless"`
+
+### 2. macOS 26+ 签名极慢
+
+**现象**：`electron-builder` 的 `signing` 步骤卡住数分钟。
+
+**原因**：macOS 26 的签名证书验证机制变化，使用 codesign 时会尝试联系 Apple 验证服务器。
+
+**修复**：测试阶段跳过签名：
+
+```bash
+npx electron-builder --mac --arm64 --publish never --config.mac.identity=null
+```
+
+正式发布时仍需签名（用 `--mac` 不带 `identity=null`），签名的 Mac 上通常很快（< 30 秒）。
+
+### 3. `ElectronCommandLine.switches` vs `LSEnvironment`
+
+**现象**：在 `extendInfo` 中设置 `LSEnvironment.V8_OPTIONS=--jitless` 后双击依然崩溃，但终端运行正常。
+
+**原因**：macOS 启动 App 时 `LSEnvironment` 的环境变量对 Electron 的 V8 初始化不生效。正确方式是通过 `ElectronCommandLine.switches` 传递 V8 参数。
+
+### 4. `git reset --hard` 后 node_modules 过时
+
+**现象**：`git reset --hard origin/main` 后 package.json 回退到旧版，但 `node_modules` 中还是新版 Electron，导致 `electron-builder` 使用的 Electron 版本与 package.json 不匹配。
+
+**修复**：每次切换分支/重置后执行：
+
+```bash
+npm install
+```
+
+查看 electron-builder 实际使用的版本：
+
+```bash
+npx electron-builder --help | grep "electron-version" || echo "check logs for 'electron='"
+```

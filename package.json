@@ -63,7 +63,8 @@
       "entitlementsInherit": "build/entitlements.mac.plist",
       "extendInfo": {
         "NSMicrophoneUsageDescription": "外语口语学习助手需要使用麦克风来监听对话并生成外语学习回答。",
-        "NSSpeechRecognitionUsageDescription": "外语口语学习助手需要使用语音识别来转录对话内容。"
+        "NSSpeechRecognitionUsageDescription": "外语口语学习助手需要使用语音识别来转录对话内容。",
+        "ElectronCommandLine.switches": ["--js-flags=jitless"]
       }
     },
     "win": {
